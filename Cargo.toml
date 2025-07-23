@@ -1,7 +1,16 @@
 [package]
 name = "opensearch_query_builder"
-version = "0.0.0"
+description = "Opensearch query builder"
+version = "0.0.1"
 edition = "2024"
+authors = ["whutchinson98"]
+include = ["src/**/*.rs"]
+categories = ["data-structures"]
+homepage = "https://github.com/whutchinson98/opensearch-query-builder"
+repository = "https://github.com/whutchinson98/opensearch-query-builder"
+license = "MIT"
+readme = "README.md"
+keywords = ["opensearch"]
 
 [dependencies]
 serde = { version = "1.0.219", features = ["derive"] }
