@@ -181,6 +181,12 @@ pub struct BoolQueryBuilder {
     inner: BoolQuery,
 }
 
+impl Default for BoolQueryBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BoolQueryBuilder {
     pub fn new() -> Self {
         Self {
@@ -727,7 +733,7 @@ impl ToOpenSearchJson for MatchPhrasePrefixQuery {
 }
 
 // Bool Query
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct BoolQuery {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub must: Vec<QueryType>,
@@ -745,14 +751,7 @@ pub struct BoolQuery {
 
 impl BoolQuery {
     pub fn new() -> Self {
-        Self {
-            must: Vec::new(),
-            must_not: Vec::new(),
-            should: Vec::new(),
-            filter: Vec::new(),
-            minimum_should_match: None,
-            boost: None,
-        }
+        Self::default()
     }
 
     pub fn must(mut self, query: QueryType) -> Self {
@@ -1018,7 +1017,7 @@ impl ToOpenSearchJson for TermsAggregation {
 }
 
 // Highlight support
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct Highlight {
     #[serde(skip_serializing_if = "HashMap::is_empty", default)]
     pub fields: HashMap<String, HighlightField>,
@@ -1026,9 +1025,7 @@ pub struct Highlight {
 
 impl Highlight {
     pub fn new() -> Self {
-        Self {
-            fields: HashMap::new(),
-        }
+        Self::default()
     }
 
     pub fn field(mut self, field_name: &str, highlight_field: HighlightField) -> Self {
@@ -1065,6 +1062,12 @@ pub struct HighlightField {
     pub post_tags: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub require_field_match: Option<bool>,
+}
+
+impl Default for HighlightField {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl HighlightField {
