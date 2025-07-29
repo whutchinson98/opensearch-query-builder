@@ -21,6 +21,11 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+      - name: clippy
+        run: cargo clippy
+      - name: format
+        run: cargo fmt --check
       - name: check 
-        run: |
-          cargo check
+        run: cargo check
+      - name: test
+        run: cargo test
