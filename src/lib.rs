@@ -19,6 +19,7 @@ pub enum QueryType {
     Bool(BoolQuery),
     Range(RangeQuery),
     MatchAll,
+    WildCard(WildcardQuery),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -397,6 +398,7 @@ impl ToOpenSearchJson for QueryType {
             QueryType::Bool(bool_query) => bool_query.to_json(),
             QueryType::Range(range) => range.to_json(),
             QueryType::MatchAll => serde_json::json!({"match_all": {}}),
+            QueryType::WildCard(wildcard_query) => wildcard_query.to_json(),
         }
     }
 }
@@ -959,6 +961,41 @@ impl ToOpenSearchJson for FieldSort {
         let mut result = Map::new();
         result.insert(self.field.clone(), Value::Object(field_obj));
         Value::Object(result)
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WildcardQuery {
+    field: String,
+    value: String,
+    case_insensitive: bool,
+}
+
+impl WildcardQuery {
+    pub fn new(field: &str, value: &str) -> Self {
+        Self {
+            field: field.to_string(),
+            value: format!("*{}*", value.to_lowercase()),
+            case_insensitive: true,
+        }
+    }
+
+    pub fn case_insensitive(mut self, case_insensitive: bool) -> Self {
+        self.case_insensitive = case_insensitive;
+        self
+    }
+}
+
+impl ToOpenSearchJson for WildcardQuery {
+    fn to_json(&self) -> Value {
+        serde_json::json!({
+            "wildcard": {
+                self.field.clone(): {
+                    "value": self.value,
+                    "case_insensitive": self.case_insensitive
+                }
+            }
+        })
     }
 }
 
