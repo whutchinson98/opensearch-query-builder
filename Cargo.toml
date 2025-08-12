@@ -12,6 +12,14 @@ license = "MIT"
 readme = "README.md"
 keywords = ["opensearch"]
 
+[features]
+default = ["visualizer"]
+visualizer = ["dep:askama", "dep:uuid"]
+
 [dependencies]
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
+
+# Optional visualization dependencies
+askama = { version = "0.14.0", optional = true }
+uuid = { version = "1.18.0", optional = true, features = ["v4"] }

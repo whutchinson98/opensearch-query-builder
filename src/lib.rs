@@ -2,6 +2,12 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use std::collections::HashMap;
 
+#[cfg(feature = "visualizer")]
+mod visualizer;
+
+#[cfg(feature = "visualizer")]
+pub use visualizer::{Visualizable, VisualizationError};
+
 // Core trait for anything that can be converted to OpenSearch JSON
 pub trait ToOpenSearchJson {
     fn to_json(&self) -> serde_json::Value;
