@@ -6,14 +6,14 @@ use std::collections::HashMap;
 mod visualizer;
 
 #[cfg(feature = "visualizer")]
-pub use visualizer::{Visualizable, VisualizationError};
+pub use visualizer::{HtmlVisualization, Visualizable, VisualizationError};
 
-// Core trait for anything that can be converted to OpenSearch JSON
+/// Trait for converting a Rust struct to an OpenSearch JSON object.
 pub trait ToOpenSearchJson {
     fn to_json(&self) -> serde_json::Value;
 }
 
-// Instead of using trait objects, we'll use enums for type safety
+/// Enum representing the different types of queries that can be used in a search request.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", content = "params")]
 pub enum QueryType {
@@ -32,7 +32,6 @@ pub enum QueryType {
 #[serde(tag = "type", content = "params")]
 pub enum AggregationType {
     Terms(TermsAggregation),
-    // Add more aggregation types as needed
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -42,7 +41,7 @@ pub enum SortType {
     Score,
 }
 
-// Main query builder
+/// Struct representing a search request.
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct SearchRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -148,7 +147,7 @@ impl ToOpenSearchJson for SearchRequest {
     }
 }
 
-// Convenience constructors for QueryType
+/// Convenience constructors for QueryType
 impl QueryType {
     pub fn term<T: Into<Value>>(field: &str, value: T) -> Self {
         QueryType::Term(TermQuery::new(field, value))
@@ -183,7 +182,7 @@ impl QueryType {
     }
 }
 
-// Builder pattern for BoolQuery
+/// Builder pattern for BoolQuery
 pub struct BoolQueryBuilder {
     inner: BoolQuery,
 }
@@ -236,7 +235,7 @@ impl BoolQueryBuilder {
     }
 }
 
-// Builder pattern for RangeQuery
+/// Builder pattern for RangeQuery
 pub struct RangeQueryBuilder {
     inner: RangeQuery,
 }
