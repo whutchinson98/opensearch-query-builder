@@ -8,7 +8,6 @@
 
   outputs =
     {
-      self,
       nixpkgs,
       flake-utils,
       fenix,
@@ -36,7 +35,7 @@
           )
         ];
 
-        libraries = with pkgs; [
+        libraries = [
         ];
       in
       {
