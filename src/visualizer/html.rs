@@ -27,12 +27,12 @@ impl VisualizationNode {
 
         let mut html = format!(
             r#"<div class="node {}" onclick="toggleNode(this)">
-                {}<strong>{}</strong> - {}{}
+                {}<strong>{}</strong> - {}
             "#,
             self.node_type,
             toggle,
             self.node_type.to_uppercase(),
-            self.label,
+            // self.label,
             clause_badge
         );
 
@@ -324,6 +324,6 @@ mod tests {
         let html = html_result.unwrap();
         assert!(html.contains("<!DOCTYPE html>"));
         assert!(html.contains("Query Structure"));
-        assert!(html.contains("Boolean Query"));
+        assert!(html.contains("BOOL"));
     }
 }

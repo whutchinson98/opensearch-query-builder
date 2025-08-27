@@ -4,7 +4,6 @@ use std::collections::HashMap;
 #[derive(Debug, Clone)]
 pub struct VisualizationNode {
     pub node_type: String,
-    pub label: String,
     pub details: HashMap<String, serde_json::Value>,
     pub children: Vec<VisualizationNode>,
     pub clause_type: Option<String>,
@@ -12,10 +11,9 @@ pub struct VisualizationNode {
 }
 
 impl VisualizationNode {
-    pub fn new(node_type: &str, label: &str) -> Self {
+    pub fn new(node_type: &str) -> Self {
         Self {
             node_type: node_type.to_string(),
-            label: label.to_string(),
             details: HashMap::new(),
             children: Vec::new(),
             clause_type: None,

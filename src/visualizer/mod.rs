@@ -37,7 +37,7 @@ impl std::error::Error for VisualizationError {}
 impl Visualizable for SearchRequest {
     // Build the visualization node for the search request
     fn visualize(&self) -> VisualizationNode {
-        let mut root = VisualizationNode::new("search", "SearchRequest").with_json(self.to_json());
+        let mut root = VisualizationNode::new("search").with_json(self.to_json());
 
         if let Some(ref query) = self.query {
             root = root.with_child(query.visualize());
@@ -52,7 +52,7 @@ impl Visualizable for SearchRequest {
         }
 
         if !self.sort.is_empty() {
-            let mut sort_node = VisualizationNode::new("sort", "Sort");
+            let mut sort_node = VisualizationNode::new("sort");
             for sort in &self.sort {
                 sort_node = sort_node.with_child(sort.visualize());
             }
@@ -60,10 +60,9 @@ impl Visualizable for SearchRequest {
         }
 
         if !self.aggs.is_empty() {
-            let mut aggs_node = VisualizationNode::new("aggregations", "Aggregations");
-            for (name, agg) in &self.aggs {
-                let mut agg_node = agg.visualize();
-                agg_node.label = format!("{}: {}", name, agg_node.label);
+            let mut aggs_node = VisualizationNode::new("aggregations");
+            for agg in self.aggs.values() {
+                let agg_node = agg.visualize();
                 aggs_node = aggs_node.with_child(agg_node);
             }
             root = root.with_child(aggs_node);
@@ -88,34 +87,25 @@ impl Visualizable for SearchRequest {
 impl Visualizable for QueryType {
     fn visualize(&self) -> VisualizationNode {
         match self {
-            QueryType::Term(term) => {
-                VisualizationNode::new("term", &format!("Field: {}", term.field))
-                    .with_detail("field", Value::String(term.field.clone()))
-                    .with_detail("value", term.value.clone())
+            QueryType::Term(term) => VisualizationNode::new("term")
+                .with_detail("field", Value::String(term.field.clone()))
+                .with_detail("value", term.value.clone()),
+            QueryType::Terms(terms) => VisualizationNode::new("terms")
+                .with_detail("field", Value::String(terms.field.clone()))
+                .with_detail("values", Value::Array(terms.values.clone())),
+            QueryType::Match(match_q) => VisualizationNode::new("match")
+                .with_detail("field", Value::String(match_q.field.clone()))
+                .with_detail("query", Value::String(match_q.query.clone())),
+            QueryType::MatchPhrase(match_phrase) => VisualizationNode::new("match_phrase")
+                .with_detail("field", Value::String(match_phrase.field.clone()))
+                .with_detail("query", Value::String(match_phrase.query.clone())),
+            QueryType::MatchPhrasePrefix(match_phrase_prefix) => {
+                VisualizationNode::new("match_phrase_prefix")
+                    .with_detail("field", Value::String(match_phrase_prefix.field.clone()))
+                    .with_detail("query", Value::String(match_phrase_prefix.query.clone()))
             }
-            QueryType::Terms(terms) => {
-                VisualizationNode::new("terms", &format!("Field: {}", terms.field))
-                    .with_detail("field", Value::String(terms.field.clone()))
-                    .with_detail("values", Value::Array(terms.values.clone()))
-            }
-            QueryType::Match(match_q) => {
-                VisualizationNode::new("match", &format!("Field: {}", match_q.field))
-                    .with_detail("field", Value::String(match_q.field.clone()))
-                    .with_detail("query", Value::String(match_q.query.clone()))
-            }
-            QueryType::MatchPhrase(match_phrase) => {
-                VisualizationNode::new("match_phrase", &format!("Field: {}", match_phrase.field))
-                    .with_detail("field", Value::String(match_phrase.field.clone()))
-                    .with_detail("query", Value::String(match_phrase.query.clone()))
-            }
-            QueryType::MatchPhrasePrefix(match_phrase_prefix) => VisualizationNode::new(
-                "match_phrase_prefix",
-                &format!("Field: {}", match_phrase_prefix.field),
-            )
-            .with_detail("field", Value::String(match_phrase_prefix.field.clone()))
-            .with_detail("query", Value::String(match_phrase_prefix.query.clone())),
             QueryType::Bool(bool_query) => {
-                let mut node = VisualizationNode::new("bool", "Boolean Query");
+                let mut node = VisualizationNode::new("bool");
 
                 for must in &bool_query.must {
                     node = node.with_child(must.visualize().with_clause_type("must"));
@@ -147,7 +137,7 @@ impl Visualizable for QueryType {
                 node
             }
             QueryType::Range(range) => {
-                let mut node = VisualizationNode::new("range", &format!("Field: {}", range.field))
+                let mut node = VisualizationNode::new("range")
                     .with_detail("field", Value::String(range.field.clone()));
 
                 if let Some(ref gte) = range.gte {
@@ -168,12 +158,10 @@ impl Visualizable for QueryType {
 
                 node
             }
-            QueryType::MatchAll => VisualizationNode::new("match_all", "Match All Documents"),
-            QueryType::WildCard(wildcard) => {
-                VisualizationNode::new("wildcard", &format!("Field: {}", wildcard.field))
-                    .with_detail("field", Value::String(wildcard.field.clone()))
-                    .with_detail("value", Value::String(wildcard.value.clone()))
-            }
+            QueryType::MatchAll => VisualizationNode::new("match_all"),
+            QueryType::WildCard(wildcard) => VisualizationNode::new("wildcard")
+                .with_detail("field", Value::String(wildcard.field.clone()))
+                .with_detail("value", Value::String(wildcard.value.clone())),
         }
     }
 }
@@ -181,12 +169,10 @@ impl Visualizable for QueryType {
 impl Visualizable for SortType {
     fn visualize(&self) -> VisualizationNode {
         match self {
-            SortType::Field(field_sort) => {
-                VisualizationNode::new("field_sort", &format!("Field: {}", field_sort.field))
-                    .with_detail("field", Value::String(field_sort.field.clone()))
-                    .with_detail("order", Value::String(format!("{:?}", field_sort.order)))
-            }
-            SortType::Score => VisualizationNode::new("score_sort", "Score"),
+            SortType::Field(field_sort) => VisualizationNode::new("field_sort")
+                .with_detail("field", Value::String(field_sort.field.clone()))
+                .with_detail("order", Value::String(format!("{:?}", field_sort.order))),
+            SortType::Score => VisualizationNode::new("score_sort"),
         }
     }
 }
@@ -195,9 +181,8 @@ impl Visualizable for AggregationType {
     fn visualize(&self) -> VisualizationNode {
         match self {
             AggregationType::Terms(terms_agg) => {
-                let mut node =
-                    VisualizationNode::new("terms_agg", &format!("Field: {}", terms_agg.field))
-                        .with_detail("field", Value::String(terms_agg.field.clone()));
+                let mut node = VisualizationNode::new("terms_agg")
+                    .with_detail("field", Value::String(terms_agg.field.clone()));
 
                 if let Some(size) = terms_agg.size {
                     node = node.with_detail("size", Value::Number(size.into()));
@@ -215,7 +200,7 @@ mod tests {
 
     #[test]
     fn test_value_formatting() {
-        let node = VisualizationNode::new("test", "Test Node");
+        let node = VisualizationNode::new("test");
 
         // Test string formatting
         assert_eq!(
