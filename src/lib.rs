@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 
 #[cfg(feature = "visualizer")]
 mod visualizer;
@@ -26,6 +26,7 @@ pub enum QueryType {
     Range(RangeQuery),
     MatchAll,
     WildCard(WildcardQuery),
+    Regexp(RegexpQuery),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -277,121 +278,6 @@ impl RangeQueryBuilder {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_term_query_simple() {
-        let query = QueryType::term("status", "published");
-        let json = query.to_json();
-
-        assert_eq!(
-            json["term"]["status"],
-            Value::String("published".to_string())
-        );
-    }
-
-    #[test]
-    fn test_term_query_with_boost() {
-        let query = QueryType::Term(TermQuery::new("status", "published").boost(2.0));
-        let json = query.to_json();
-
-        assert_eq!(
-            json["term"]["status"]["value"],
-            Value::String("published".to_string())
-        );
-        assert_eq!(json["term"]["status"]["boost"], 2.0);
-    }
-
-    #[test]
-    fn test_match_phrase_simple() {
-        let query = QueryType::match_phrase("content", "testing");
-        let json = query.to_json();
-
-        assert_eq!(
-            json["match_phrase"]["content"],
-            Value::String("testing".to_string())
-        );
-    }
-
-    #[test]
-    fn test_match_phrase_with_options() {
-        let query = QueryType::MatchPhrase(MatchPhraseQuery::new("content", "testing").slop(2));
-        let json = query.to_json();
-
-        assert_eq!(
-            json["match_phrase"]["content"]["query"],
-            Value::String("testing".to_string())
-        );
-        assert_eq!(
-            json["match_phrase"]["content"]["slop"],
-            Value::Number(2.into())
-        );
-    }
-
-    #[test]
-    fn test_terms_query_simple() {
-        let query = QueryType::terms("file_type", vec!["pdf", "docx"]);
-        let json = query.to_json();
-
-        let expected_values = vec![
-            Value::String("pdf".to_string()),
-            Value::String("docx".to_string()),
-        ];
-        assert_eq!(json["terms"]["file_type"], Value::Array(expected_values));
-    }
-
-    #[test]
-    fn test_bool_query() {
-        let bool_query = QueryType::bool_query()
-            .must(QueryType::term("status", "published"))
-            .should(QueryType::match_query("title", "rust"))
-            .minimum_should_match(1)
-            .build();
-
-        let json = bool_query.to_json();
-        assert!(json["bool"]["must"].is_array());
-        assert!(json["bool"]["should"].is_array());
-        assert_eq!(
-            json["bool"]["minimum_should_match"],
-            Value::Number(1.into())
-        );
-    }
-
-    #[test]
-    fn test_search_request_serialization() {
-        let request = SearchRequest::new()
-            .query(QueryType::match_query("title", "elasticsearch"))
-            .size(10)
-            .from(0)
-            .sort(SortType::Field(FieldSort::new(
-                "created_at",
-                SortOrder::Desc,
-            )));
-
-        let json = request.to_json();
-        assert_eq!(
-            json["query"]["match"]["title"],
-            Value::String("elasticsearch".to_string())
-        );
-        assert_eq!(json["size"], Value::Number(10.into()));
-        assert_eq!(json["from"], Value::Number(0.into()));
-    }
-
-    #[test]
-    fn test_serde_roundtrip() {
-        let request = SearchRequest::new()
-            .query(QueryType::match_query("title", "test"))
-            .size(5);
-
-        let serialized = serde_json::to_string(&request).unwrap();
-        let deserialized: SearchRequest = serde_json::from_str(&serialized).unwrap();
-
-        assert_eq!(deserialized.size, Some(5));
-    }
-}
-
 impl ToOpenSearchJson for QueryType {
     fn to_json(&self) -> Value {
         match self {
@@ -404,6 +290,7 @@ impl ToOpenSearchJson for QueryType {
             QueryType::Range(range) => range.to_json(),
             QueryType::MatchAll => serde_json::json!({"match_all": {}}),
             QueryType::WildCard(wildcard_query) => wildcard_query.to_json(),
+            QueryType::Regexp(regexp_query) => regexp_query.to_json(),
         }
     }
 }
@@ -1004,6 +891,103 @@ impl ToOpenSearchJson for WildcardQuery {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "UPPERCASE")]
+pub enum RegexpQueryFlags {
+    /// Enables all optional features (default behavior)
+    All,
+    /// Allows @ to match any string
+    Anystring,
+    /// Matches the complement of the language described by the regex
+    Complement,
+    /// Allows matching empty strings
+    Empty,
+    /// Enables intersection of multiple patterns
+    Intersection,
+    /// Enables interval arithmetic on character classes
+    Interval,
+    /// Disables all optional features (default behavior)
+    None,
+}
+
+impl RegexpQueryFlags {
+    pub fn all() -> Vec<Self> {
+        vec![Self::All]
+    }
+}
+
+impl Display for RegexpQueryFlags {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            RegexpQueryFlags::All => write!(f, "ALL"),
+            RegexpQueryFlags::Anystring => write!(f, "ANYSTRING"),
+            RegexpQueryFlags::Complement => write!(f, "COMPLEMENT"),
+            RegexpQueryFlags::Empty => write!(f, "EMPTY"),
+            RegexpQueryFlags::Intersection => write!(f, "INTERSECTION"),
+            RegexpQueryFlags::Interval => write!(f, "INTERVAL"),
+            RegexpQueryFlags::None => write!(f, "NONE"),
+        }
+    }
+}
+
+impl Default for RegexpQueryFlags {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct RegexpQuery {
+    /// The field to search in
+    pub field: String,
+    /// The stringified regex pattern to match on
+    pub value: String,
+    /// The flags to use when matching the regular expression
+    pub flags: Option<Vec<RegexpQueryFlags>>,
+}
+
+impl RegexpQuery {
+    pub fn new(field: &str, value: &str) -> Self {
+        Self {
+            field: field.to_string(),
+            value: value.to_string(),
+            flags: None,
+        }
+    }
+
+    pub fn flags(mut self, flags: Vec<RegexpQueryFlags>) -> Self {
+        self.flags = Some(flags);
+        self
+    }
+}
+
+impl ToOpenSearchJson for RegexpQuery {
+    fn to_json(&self) -> Value {
+        let mut json = serde_json::json!({
+            "regexp": {
+                self.field.clone(): {
+                    "value": self.value,
+                }
+            }
+        });
+
+        if let Some(flags) = self.flags.as_ref()
+            && !flags.is_empty()
+        {
+            // Join all flags with |
+            json["regexp"][self.field.clone()]["flags"] = Value::String(
+                flags
+                    .iter()
+                    .map(ToString::to_string)
+                    .collect::<Vec<_>>()
+                    .join("|"),
+            );
+        }
+
+        json
+    }
+}
+
 // Terms Aggregation
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TermsAggregation {
@@ -1190,5 +1174,165 @@ impl ToOpenSearchJson for HighlightField {
         }
 
         Value::Object(result)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_term_query_simple() {
+        let query = QueryType::term("status", "published");
+        let json = query.to_json();
+
+        assert_eq!(
+            json["term"]["status"],
+            Value::String("published".to_string())
+        );
+    }
+
+    #[test]
+    fn test_term_query_with_boost() {
+        let query = QueryType::Term(TermQuery::new("status", "published").boost(2.0));
+        let json = query.to_json();
+
+        assert_eq!(
+            json["term"]["status"]["value"],
+            Value::String("published".to_string())
+        );
+        assert_eq!(json["term"]["status"]["boost"], 2.0);
+    }
+
+    #[test]
+    fn test_match_phrase_simple() {
+        let query = QueryType::match_phrase("content", "testing");
+        let json = query.to_json();
+
+        assert_eq!(
+            json["match_phrase"]["content"],
+            Value::String("testing".to_string())
+        );
+    }
+
+    #[test]
+    fn test_match_phrase_with_options() {
+        let query = QueryType::MatchPhrase(MatchPhraseQuery::new("content", "testing").slop(2));
+        let json = query.to_json();
+
+        assert_eq!(
+            json["match_phrase"]["content"]["query"],
+            Value::String("testing".to_string())
+        );
+        assert_eq!(
+            json["match_phrase"]["content"]["slop"],
+            Value::Number(2.into())
+        );
+    }
+
+    #[test]
+    fn test_terms_query_simple() {
+        let query = QueryType::terms("file_type", vec!["pdf", "docx"]);
+        let json = query.to_json();
+
+        let expected_values = vec![
+            Value::String("pdf".to_string()),
+            Value::String("docx".to_string()),
+        ];
+        assert_eq!(json["terms"]["file_type"], Value::Array(expected_values));
+    }
+
+    #[test]
+    fn test_bool_query() {
+        let bool_query = QueryType::bool_query()
+            .must(QueryType::term("status", "published"))
+            .should(QueryType::match_query("title", "rust"))
+            .minimum_should_match(1)
+            .build();
+
+        let json = bool_query.to_json();
+        assert!(json["bool"]["must"].is_array());
+        assert!(json["bool"]["should"].is_array());
+        assert_eq!(
+            json["bool"]["minimum_should_match"],
+            Value::Number(1.into())
+        );
+    }
+
+    #[test]
+    fn test_regexp_query() {
+        let query = QueryType::bool_query()
+            .must(QueryType::Regexp(RegexpQuery::new(
+                "content",
+                "test\\&test",
+            )))
+            .build();
+        let json = query.to_json();
+
+        let regexp = serde_json::json!({
+            "regexp": {
+                "content": {
+                    "value": "test\\&test"
+                }
+            }
+        });
+
+        assert_eq!(json["bool"]["must"][0], regexp);
+    }
+
+    #[test]
+    fn test_regexp_query_with_flags() {
+        let query = QueryType::bool_query()
+            .must(QueryType::Regexp(
+                RegexpQuery::new("content", "test\\&test").flags(vec![
+                    RegexpQueryFlags::Intersection,
+                    RegexpQueryFlags::Empty,
+                ]),
+            ))
+            .build();
+        let json = query.to_json();
+
+        let regexp = serde_json::json!({
+            "regexp": {
+                "content": {
+                    "value": "test\\&test",
+                    "flags": "INTERSECTION|EMPTY",
+                }
+            }
+        });
+
+        assert_eq!(json["bool"]["must"][0], regexp);
+    }
+
+    #[test]
+    fn test_search_request_serialization() {
+        let request = SearchRequest::new()
+            .query(QueryType::match_query("title", "elasticsearch"))
+            .size(10)
+            .from(0)
+            .sort(SortType::Field(FieldSort::new(
+                "created_at",
+                SortOrder::Desc,
+            )));
+
+        let json = request.to_json();
+        assert_eq!(
+            json["query"]["match"]["title"],
+            Value::String("elasticsearch".to_string())
+        );
+        assert_eq!(json["size"], Value::Number(10.into()));
+        assert_eq!(json["from"], Value::Number(0.into()));
+    }
+
+    #[test]
+    fn test_serde_roundtrip() {
+        let request = SearchRequest::new()
+            .query(QueryType::match_query("title", "test"))
+            .size(5);
+
+        let serialized = serde_json::to_string(&request).unwrap();
+        let deserialized: SearchRequest = serde_json::from_str(&serialized).unwrap();
+
+        assert_eq!(deserialized.size, Some(5));
     }
 }
