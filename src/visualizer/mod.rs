@@ -104,6 +104,28 @@ impl Visualizable for QueryType {
                     .with_detail("field", Value::String(match_phrase_prefix.field.clone()))
                     .with_detail("query", Value::String(match_phrase_prefix.query.clone()))
             }
+            QueryType::Regexp(regexp_query) => {
+                let mut node = VisualizationNode::new("regexp")
+                    .with_detail("field", Value::String(regexp_query.field.clone()))
+                    .with_detail("value", Value::String(regexp_query.value.clone()));
+
+                if let Some(flags) = regexp_query.flags.as_ref()
+                    && !flags.is_empty()
+                {
+                    node = node.with_detail(
+                        "flags",
+                        Value::String(
+                            flags
+                                .iter()
+                                .map(ToString::to_string)
+                                .collect::<Vec<_>>()
+                                .join("|"),
+                        ),
+                    );
+                }
+
+                node
+            }
             QueryType::Bool(bool_query) => {
                 let mut node = VisualizationNode::new("bool");
 

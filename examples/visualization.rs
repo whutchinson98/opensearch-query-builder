@@ -17,6 +17,12 @@ pub fn main() {
                     QueryType::bool_query()
                         .should(QueryType::match_phrase("content", query))
                         .should(QueryType::match_phrase_prefix("document_name", query))
+                        .should(QueryType::Regexp(
+                            RegexpQuery::new("content", "abc.*").flags(vec![
+                                RegexpQueryFlags::Intersection,
+                                RegexpQueryFlags::Empty,
+                            ]),
+                        ))
                         .minimum_should_match(1)
                         .build(),
                 )
