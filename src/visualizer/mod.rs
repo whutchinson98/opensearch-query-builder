@@ -109,19 +109,19 @@ impl Visualizable for QueryType {
                     .with_detail("field", Value::String(regexp_query.field.clone()))
                     .with_detail("value", Value::String(regexp_query.value.clone()));
 
-                if let Some(flags) = regexp_query.flags.as_ref()
-                    && !flags.is_empty()
-                {
-                    node = node.with_detail(
-                        "flags",
-                        Value::String(
-                            flags
-                                .iter()
-                                .map(ToString::to_string)
-                                .collect::<Vec<_>>()
-                                .join("|"),
-                        ),
-                    );
+                if let Some(flags) = regexp_query.flags.as_ref() {
+                    if !flags.is_empty() {
+                        node = node.with_detail(
+                            "flags",
+                            Value::String(
+                                flags
+                                    .iter()
+                                    .map(ToString::to_string)
+                                    .collect::<Vec<_>>()
+                                    .join("|"),
+                            ),
+                        );
+                    }
                 }
 
                 node

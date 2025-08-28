@@ -44,7 +44,7 @@ impl VisualizationNode {
     #[allow(clippy::only_used_in_recursion)]
     pub fn format_value(&self, value: &serde_json::Value) -> String {
         match value {
-            serde_json::Value::String(s) => format!("\"{}\"", s),
+            serde_json::Value::String(s) => format!("\"{s}\""),
             serde_json::Value::Number(n) => n.to_string(),
             serde_json::Value::Bool(b) => b.to_string(),
             serde_json::Value::Array(arr) => {

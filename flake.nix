@@ -2,8 +2,6 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
-    fenix.url = "github:nix-community/fenix";
-    fenix.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs =
@@ -11,7 +9,6 @@
       self,
       nixpkgs,
       flake-utils,
-      fenix,
     }:
     flake-utils.lib.eachDefaultSystem (
       system:
@@ -23,17 +20,11 @@
           cargo-info
           cargo-udeps
           just
-          (
-            with fenix.packages.${system};
-            combine [
-              complete.rustc
-              complete.rust-src
-              complete.cargo
-              complete.clippy
-              complete.rustfmt
-              complete.rust-analyzer
-            ]
-          )
+          rustc
+          cargo
+          clippy
+          rustfmt
+          rust-analyzer
         ];
 
         libraries = [

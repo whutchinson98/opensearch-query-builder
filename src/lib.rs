@@ -971,17 +971,17 @@ impl ToOpenSearchJson for RegexpQuery {
             }
         });
 
-        if let Some(flags) = self.flags.as_ref()
-            && !flags.is_empty()
-        {
-            // Join all flags with |
-            json["regexp"][self.field.clone()]["flags"] = Value::String(
-                flags
-                    .iter()
-                    .map(ToString::to_string)
-                    .collect::<Vec<_>>()
-                    .join("|"),
-            );
+        if let Some(flags) = self.flags.as_ref() {
+            if !flags.is_empty() {
+                // Join all flags with |
+                json["regexp"][self.field.clone()]["flags"] = Value::String(
+                    flags
+                        .iter()
+                        .map(ToString::to_string)
+                        .collect::<Vec<_>>()
+                        .join("|"),
+                );
+            }
         }
 
         json
