@@ -491,6 +491,8 @@ pub struct MatchQuery {
     pub fuzziness: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub boost: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub minimum_should_match: Option<String>,
 }
 
 impl MatchQuery {
@@ -501,6 +503,7 @@ impl MatchQuery {
             operator: None,
             fuzziness: None,
             boost: None,
+            minimum_should_match: None,
         }
     }
 
@@ -518,6 +521,11 @@ impl MatchQuery {
         self.boost = Some(boost);
         self
     }
+
+    pub fn minimum_should_match(mut self, minimum_should_match: &str) -> Self {
+        self.minimum_should_match = Some(minimum_should_match.to_string());
+        self
+    }
 }
 
 impl ToOpenSearchJson for MatchQuery {
@@ -527,7 +535,7 @@ impl ToOpenSearchJson for MatchQuery {
 
         // Check if we need the complex form
         let has_options =
-            self.operator.is_some() || self.fuzziness.is_some() || self.boost.is_some();
+            self.operator.is_some() || self.fuzziness.is_some() || self.boost.is_some() || self.minimum_should_match.is_some();
 
         if has_options {
             let mut field_obj = Map::new();
@@ -541,6 +549,13 @@ impl ToOpenSearchJson for MatchQuery {
             }
             if let Some(boost) = self.boost {
                 field_obj.insert("boost".to_string(), boost.into());
+            }
+
+            if let Some(ref minimum_should_match) = self.minimum_should_match {
+                field_obj.insert(
+                    "minimum_should_match".to_string(),
+                    Value::String(minimum_should_match.clone()),
+                );
             }
 
             match_obj.insert(self.field.clone(), Value::Object(field_obj));
