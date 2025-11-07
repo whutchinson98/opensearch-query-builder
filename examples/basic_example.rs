@@ -94,19 +94,13 @@ pub fn main() {
         "size": page_size,
         "sort":  [
             {
-                "updated_at": {
-                    "order": "desc"
-                }
+                "updated_at": "desc",
             },
             {
-                "document_id": {
-                    "order": "asc"
-                }
+                "document_id": "asc",
             },
             {
-                "node_id": {
-                    "order": "asc"
-                }
+                "node_id": "asc",
             },
         ],
         "highlight": {

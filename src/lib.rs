@@ -27,12 +27,14 @@ pub enum QueryType {
     MatchAll,
     WildCard(WildcardQuery),
     Regexp(RegexpQuery),
+    FunctionScore(FunctionScoreQuery),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", content = "params")]
 pub enum AggregationType {
     Terms(TermsAggregation),
+    Cardinality(CardinalityAggregation),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -40,6 +42,7 @@ pub enum AggregationType {
 pub enum SortType {
     Field(FieldSort),
     Score,
+    ScoreWithOrder(ScoreSort),
 }
 
 /// Struct representing a search request.
@@ -59,6 +62,10 @@ pub struct SearchRequest {
     pub _source: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub highlight: Option<Highlight>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub track_total_hits: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub collapse: Option<Collapse>,
 }
 
 impl SearchRequest {
@@ -98,6 +105,16 @@ impl SearchRequest {
 
     pub fn highlight(mut self, highlight: Highlight) -> Self {
         self.highlight = Some(highlight);
+        self
+    }
+
+    pub fn track_total_hits(mut self, track: bool) -> Self {
+        self.track_total_hits = Some(track);
+        self
+    }
+
+    pub fn collapse(mut self, collapse: Collapse) -> Self {
+        self.collapse = Some(collapse);
         self
     }
 }
@@ -144,6 +161,17 @@ impl ToOpenSearchJson for SearchRequest {
             result.insert("highlight".to_string(), highlight.to_json());
         }
 
+        if let Some(track_total_hits) = self.track_total_hits {
+            result.insert(
+                "track_total_hits".to_string(),
+                Value::Bool(track_total_hits),
+            );
+        }
+
+        if let Some(ref collapse) = self.collapse {
+            result.insert("collapse".to_string(), collapse.to_json());
+        }
+
         Value::Object(result)
     }
 }
@@ -180,6 +208,10 @@ impl QueryType {
 
     pub fn match_all() -> Self {
         QueryType::MatchAll
+    }
+
+    pub fn function_score() -> FunctionScoreQueryBuilder {
+        FunctionScoreQueryBuilder::new()
     }
 }
 
@@ -278,6 +310,651 @@ impl RangeQueryBuilder {
     }
 }
 
+// Function Score enums and structs
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ScoreMode {
+    Multiply,
+    Sum,
+    Avg,
+    First,
+    Max,
+    Min,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum BoostMode {
+    Multiply,
+    Replace,
+    Sum,
+    Avg,
+    Max,
+    Min,
+}
+
+/// Decay function configuration for location/time-based scoring
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DecayFunction {
+    pub field: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub origin: Option<Value>,
+    pub scale: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub offset: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub decay: Option<f64>,
+}
+
+impl DecayFunction {
+    pub fn new(field: &str, scale: &str) -> Self {
+        Self {
+            field: field.to_string(),
+            origin: None,
+            scale: scale.to_string(),
+            offset: None,
+            decay: None,
+        }
+    }
+
+    pub fn origin<T: Into<Value>>(mut self, origin: T) -> Self {
+        self.origin = Some(origin.into());
+        self
+    }
+
+    pub fn offset(mut self, offset: &str) -> Self {
+        self.offset = Some(offset.to_string());
+        self
+    }
+
+    pub fn decay(mut self, decay: f64) -> Self {
+        self.decay = Some(decay);
+        self
+    }
+}
+
+/// Field value factor configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FieldValueFactor {
+    pub field: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub factor: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub modifier: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub missing: Option<f64>,
+}
+
+impl FieldValueFactor {
+    pub fn new(field: &str) -> Self {
+        Self {
+            field: field.to_string(),
+            factor: None,
+            modifier: None,
+            missing: None,
+        }
+    }
+
+    pub fn factor(mut self, factor: f64) -> Self {
+        self.factor = Some(factor);
+        self
+    }
+
+    pub fn modifier(mut self, modifier: &str) -> Self {
+        self.modifier = Some(modifier.to_string());
+        self
+    }
+
+    pub fn missing(mut self, missing: f64) -> Self {
+        self.missing = Some(missing);
+        self
+    }
+}
+
+/// Random score configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RandomScore {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub seed: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub field: Option<String>,
+}
+
+impl RandomScore {
+    pub fn new() -> Self {
+        Self {
+            seed: None,
+            field: None,
+        }
+    }
+
+    pub fn seed<T: Into<Value>>(mut self, seed: T) -> Self {
+        self.seed = Some(seed.into());
+        self
+    }
+
+    pub fn field(mut self, field: &str) -> Self {
+        self.field = Some(field.to_string());
+        self
+    }
+}
+
+impl Default for RandomScore {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Script score configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScriptScore {
+    pub source: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub params: Option<Map<String, Value>>,
+}
+
+impl ScriptScore {
+    pub fn new(source: &str) -> Self {
+        Self {
+            source: source.to_string(),
+            params: None,
+        }
+    }
+
+    pub fn params(mut self, params: Map<String, Value>) -> Self {
+        self.params = Some(params);
+        self
+    }
+}
+
+/// Enum representing different scoring functions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum ScoreFunctionType {
+    Gauss(DecayFunction),
+    Exp(DecayFunction),
+    Linear(DecayFunction),
+    FieldValueFactor(FieldValueFactor),
+    RandomScore(RandomScore),
+    ScriptScore(ScriptScore),
+    Weight(f64),
+}
+
+/// A single scoring function with optional filter and weight
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScoreFunction {
+    #[serde(flatten)]
+    pub function: ScoreFunctionType,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub filter: Option<Box<QueryType>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub weight: Option<f64>,
+}
+
+impl ScoreFunction {
+    pub fn gauss(field: &str, scale: &str) -> Self {
+        Self {
+            function: ScoreFunctionType::Gauss(DecayFunction::new(field, scale)),
+            filter: None,
+            weight: None,
+        }
+    }
+
+    pub fn exp(field: &str, scale: &str) -> Self {
+        Self {
+            function: ScoreFunctionType::Exp(DecayFunction::new(field, scale)),
+            filter: None,
+            weight: None,
+        }
+    }
+
+    pub fn linear(field: &str, scale: &str) -> Self {
+        Self {
+            function: ScoreFunctionType::Linear(DecayFunction::new(field, scale)),
+            filter: None,
+            weight: None,
+        }
+    }
+
+    pub fn field_value_factor(field: &str) -> Self {
+        Self {
+            function: ScoreFunctionType::FieldValueFactor(FieldValueFactor::new(field)),
+            filter: None,
+            weight: None,
+        }
+    }
+
+    pub fn random_score() -> Self {
+        Self {
+            function: ScoreFunctionType::RandomScore(RandomScore::new()),
+            filter: None,
+            weight: None,
+        }
+    }
+
+    pub fn script_score(source: &str) -> Self {
+        Self {
+            function: ScoreFunctionType::ScriptScore(ScriptScore::new(source)),
+            filter: None,
+            weight: None,
+        }
+    }
+
+    pub fn weight_only(weight: f64) -> Self {
+        Self {
+            function: ScoreFunctionType::Weight(weight),
+            filter: None,
+            weight: Some(weight),
+        }
+    }
+
+    pub fn filter(mut self, filter: QueryType) -> Self {
+        self.filter = Some(Box::new(filter));
+        self
+    }
+
+    pub fn weight(mut self, weight: f64) -> Self {
+        self.weight = Some(weight);
+        self
+    }
+
+    // Builder methods for decay functions
+    pub fn origin<T: Into<Value>>(mut self, origin: T) -> Self {
+        match &mut self.function {
+            ScoreFunctionType::Gauss(decay)
+            | ScoreFunctionType::Exp(decay)
+            | ScoreFunctionType::Linear(decay) => {
+                decay.origin = Some(origin.into());
+            }
+            _ => {}
+        }
+        self
+    }
+
+    pub fn offset(mut self, offset: &str) -> Self {
+        match &mut self.function {
+            ScoreFunctionType::Gauss(decay)
+            | ScoreFunctionType::Exp(decay)
+            | ScoreFunctionType::Linear(decay) => {
+                decay.offset = Some(offset.to_string());
+            }
+            _ => {}
+        }
+        self
+    }
+
+    pub fn decay(mut self, decay_val: f64) -> Self {
+        match &mut self.function {
+            ScoreFunctionType::Gauss(decay)
+            | ScoreFunctionType::Exp(decay)
+            | ScoreFunctionType::Linear(decay) => {
+                decay.decay = Some(decay_val);
+            }
+            _ => {}
+        }
+        self
+    }
+
+    // Builder methods for field_value_factor
+    pub fn factor(mut self, factor: f64) -> Self {
+        if let ScoreFunctionType::FieldValueFactor(fvf) = &mut self.function {
+            fvf.factor = Some(factor);
+        }
+        self
+    }
+
+    pub fn modifier(mut self, modifier: &str) -> Self {
+        if let ScoreFunctionType::FieldValueFactor(fvf) = &mut self.function {
+            fvf.modifier = Some(modifier.to_string());
+        }
+        self
+    }
+
+    pub fn missing(mut self, missing: f64) -> Self {
+        if let ScoreFunctionType::FieldValueFactor(fvf) = &mut self.function {
+            fvf.missing = Some(missing);
+        }
+        self
+    }
+
+    // Builder methods for random_score
+    pub fn seed<T: Into<Value>>(mut self, seed: T) -> Self {
+        if let ScoreFunctionType::RandomScore(rs) = &mut self.function {
+            rs.seed = Some(seed.into());
+        }
+        self
+    }
+
+    pub fn field(mut self, field: &str) -> Self {
+        if let ScoreFunctionType::RandomScore(rs) = &mut self.function {
+            rs.field = Some(field.to_string());
+        }
+        self
+    }
+
+    // Builder methods for script_score
+    pub fn params(mut self, params: Map<String, Value>) -> Self {
+        if let ScoreFunctionType::ScriptScore(ss) = &mut self.function {
+            ss.params = Some(params);
+        }
+        self
+    }
+}
+
+impl ToOpenSearchJson for ScoreFunction {
+    fn to_json(&self) -> Value {
+        let mut result = Map::new();
+
+        // Add the function type
+        match &self.function {
+            ScoreFunctionType::Gauss(decay) => {
+                let mut decay_obj = Map::new();
+                let mut field_obj = Map::new();
+
+                if let Some(ref origin) = decay.origin {
+                    field_obj.insert("origin".to_string(), origin.clone());
+                }
+                field_obj.insert("scale".to_string(), Value::String(decay.scale.clone()));
+                if let Some(ref offset) = decay.offset {
+                    field_obj.insert("offset".to_string(), Value::String(offset.clone()));
+                }
+                if let Some(decay_val) = decay.decay {
+                    field_obj.insert("decay".to_string(), decay_val.into());
+                }
+
+                decay_obj.insert(decay.field.clone(), Value::Object(field_obj));
+                result.insert("gauss".to_string(), Value::Object(decay_obj));
+            }
+            ScoreFunctionType::Exp(decay) => {
+                let mut decay_obj = Map::new();
+                let mut field_obj = Map::new();
+
+                if let Some(ref origin) = decay.origin {
+                    field_obj.insert("origin".to_string(), origin.clone());
+                }
+                field_obj.insert("scale".to_string(), Value::String(decay.scale.clone()));
+                if let Some(ref offset) = decay.offset {
+                    field_obj.insert("offset".to_string(), Value::String(offset.clone()));
+                }
+                if let Some(decay_val) = decay.decay {
+                    field_obj.insert("decay".to_string(), decay_val.into());
+                }
+
+                decay_obj.insert(decay.field.clone(), Value::Object(field_obj));
+                result.insert("exp".to_string(), Value::Object(decay_obj));
+            }
+            ScoreFunctionType::Linear(decay) => {
+                let mut decay_obj = Map::new();
+                let mut field_obj = Map::new();
+
+                if let Some(ref origin) = decay.origin {
+                    field_obj.insert("origin".to_string(), origin.clone());
+                }
+                field_obj.insert("scale".to_string(), Value::String(decay.scale.clone()));
+                if let Some(ref offset) = decay.offset {
+                    field_obj.insert("offset".to_string(), Value::String(offset.clone()));
+                }
+                if let Some(decay_val) = decay.decay {
+                    field_obj.insert("decay".to_string(), decay_val.into());
+                }
+
+                decay_obj.insert(decay.field.clone(), Value::Object(field_obj));
+                result.insert("linear".to_string(), Value::Object(decay_obj));
+            }
+            ScoreFunctionType::FieldValueFactor(fvf) => {
+                let mut fvf_obj = Map::new();
+                fvf_obj.insert("field".to_string(), Value::String(fvf.field.clone()));
+                if let Some(factor) = fvf.factor {
+                    fvf_obj.insert("factor".to_string(), factor.into());
+                }
+                if let Some(ref modifier) = fvf.modifier {
+                    fvf_obj.insert("modifier".to_string(), Value::String(modifier.clone()));
+                }
+                if let Some(missing) = fvf.missing {
+                    fvf_obj.insert("missing".to_string(), missing.into());
+                }
+                result.insert("field_value_factor".to_string(), Value::Object(fvf_obj));
+            }
+            ScoreFunctionType::RandomScore(rs) => {
+                let mut rs_obj = Map::new();
+                if let Some(ref seed) = rs.seed {
+                    rs_obj.insert("seed".to_string(), seed.clone());
+                }
+                if let Some(ref field) = rs.field {
+                    rs_obj.insert("field".to_string(), Value::String(field.clone()));
+                }
+                result.insert("random_score".to_string(), Value::Object(rs_obj));
+            }
+            ScoreFunctionType::ScriptScore(ss) => {
+                let mut script_obj = Map::new();
+                script_obj.insert("source".to_string(), Value::String(ss.source.clone()));
+                if let Some(ref params) = ss.params {
+                    script_obj.insert("params".to_string(), Value::Object(params.clone()));
+                }
+                let mut ss_obj = Map::new();
+                ss_obj.insert("script".to_string(), Value::Object(script_obj));
+                result.insert("script_score".to_string(), Value::Object(ss_obj));
+            }
+            ScoreFunctionType::Weight(_) => {
+                // Weight-only functions don't add a function type field
+            }
+        }
+
+        // Add filter if present
+        if let Some(ref filter) = self.filter {
+            result.insert("filter".to_string(), filter.to_json());
+        }
+
+        // Add weight if present
+        if let Some(weight) = self.weight {
+            result.insert("weight".to_string(), weight.into());
+        }
+
+        Value::Object(result)
+    }
+}
+
+/// Function Score Query
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FunctionScoreQuery {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub query: Option<Box<QueryType>>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub functions: Vec<ScoreFunction>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub score_mode: Option<ScoreMode>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub boost_mode: Option<BoostMode>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_boost: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub boost: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_score: Option<f64>,
+}
+
+impl Default for FunctionScoreQuery {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl FunctionScoreQuery {
+    pub fn new() -> Self {
+        Self {
+            query: None,
+            functions: Vec::new(),
+            score_mode: None,
+            boost_mode: None,
+            max_boost: None,
+            boost: None,
+            min_score: None,
+        }
+    }
+
+    pub fn query(mut self, query: QueryType) -> Self {
+        self.query = Some(Box::new(query));
+        self
+    }
+
+    pub fn function(mut self, function: ScoreFunction) -> Self {
+        self.functions.push(function);
+        self
+    }
+
+    pub fn score_mode(mut self, score_mode: ScoreMode) -> Self {
+        self.score_mode = Some(score_mode);
+        self
+    }
+
+    pub fn boost_mode(mut self, boost_mode: BoostMode) -> Self {
+        self.boost_mode = Some(boost_mode);
+        self
+    }
+
+    pub fn max_boost(mut self, max_boost: f64) -> Self {
+        self.max_boost = Some(max_boost);
+        self
+    }
+
+    pub fn boost(mut self, boost: f32) -> Self {
+        self.boost = Some(boost);
+        self
+    }
+
+    pub fn min_score(mut self, min_score: f64) -> Self {
+        self.min_score = Some(min_score);
+        self
+    }
+}
+
+impl ToOpenSearchJson for FunctionScoreQuery {
+    fn to_json(&self) -> Value {
+        let mut function_score_obj = Map::new();
+
+        // Add query if present
+        if let Some(ref query) = self.query {
+            function_score_obj.insert("query".to_string(), query.to_json());
+        }
+
+        // Add functions array if not empty
+        if !self.functions.is_empty() {
+            let functions: Vec<Value> = self.functions.iter().map(|f| f.to_json()).collect();
+            function_score_obj.insert("functions".to_string(), Value::Array(functions));
+        }
+
+        // Add score_mode if present
+        if let Some(ref score_mode) = self.score_mode {
+            function_score_obj.insert(
+                "score_mode".to_string(),
+                Value::String(match score_mode {
+                    ScoreMode::Multiply => "multiply".to_string(),
+                    ScoreMode::Sum => "sum".to_string(),
+                    ScoreMode::Avg => "avg".to_string(),
+                    ScoreMode::First => "first".to_string(),
+                    ScoreMode::Max => "max".to_string(),
+                    ScoreMode::Min => "min".to_string(),
+                }),
+            );
+        }
+
+        // Add boost_mode if present
+        if let Some(ref boost_mode) = self.boost_mode {
+            function_score_obj.insert(
+                "boost_mode".to_string(),
+                Value::String(match boost_mode {
+                    BoostMode::Multiply => "multiply".to_string(),
+                    BoostMode::Replace => "replace".to_string(),
+                    BoostMode::Sum => "sum".to_string(),
+                    BoostMode::Avg => "avg".to_string(),
+                    BoostMode::Max => "max".to_string(),
+                    BoostMode::Min => "min".to_string(),
+                }),
+            );
+        }
+
+        // Add max_boost if present
+        if let Some(max_boost) = self.max_boost {
+            function_score_obj.insert("max_boost".to_string(), max_boost.into());
+        }
+
+        // Add boost if present
+        if let Some(boost) = self.boost {
+            function_score_obj.insert("boost".to_string(), boost.into());
+        }
+
+        // Add min_score if present
+        if let Some(min_score) = self.min_score {
+            function_score_obj.insert("min_score".to_string(), min_score.into());
+        }
+
+        let mut result = Map::new();
+        result.insert(
+            "function_score".to_string(),
+            Value::Object(function_score_obj),
+        );
+        Value::Object(result)
+    }
+}
+
+/// Builder pattern for FunctionScoreQuery
+pub struct FunctionScoreQueryBuilder {
+    inner: FunctionScoreQuery,
+}
+
+impl Default for FunctionScoreQueryBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl FunctionScoreQueryBuilder {
+    pub fn new() -> Self {
+        Self {
+            inner: FunctionScoreQuery::new(),
+        }
+    }
+
+    pub fn query(mut self, query: QueryType) -> Self {
+        self.inner = self.inner.query(query);
+        self
+    }
+
+    pub fn function(mut self, function: ScoreFunction) -> Self {
+        self.inner = self.inner.function(function);
+        self
+    }
+
+    pub fn score_mode(mut self, score_mode: ScoreMode) -> Self {
+        self.inner = self.inner.score_mode(score_mode);
+        self
+    }
+
+    pub fn boost_mode(mut self, boost_mode: BoostMode) -> Self {
+        self.inner = self.inner.boost_mode(boost_mode);
+        self
+    }
+
+    pub fn max_boost(mut self, max_boost: f64) -> Self {
+        self.inner = self.inner.max_boost(max_boost);
+        self
+    }
+
+    pub fn boost(mut self, boost: f32) -> Self {
+        self.inner = self.inner.boost(boost);
+        self
+    }
+
+    pub fn min_score(mut self, min_score: f64) -> Self {
+        self.inner = self.inner.min_score(min_score);
+        self
+    }
+
+    pub fn build(self) -> QueryType {
+        QueryType::FunctionScore(self.inner)
+    }
+}
+
 impl ToOpenSearchJson for QueryType {
     fn to_json(&self) -> Value {
         match self {
@@ -291,6 +968,7 @@ impl ToOpenSearchJson for QueryType {
             QueryType::MatchAll => serde_json::json!({"match_all": {}}),
             QueryType::WildCard(wildcard_query) => wildcard_query.to_json(),
             QueryType::Regexp(regexp_query) => regexp_query.to_json(),
+            QueryType::FunctionScore(function_score) => function_score.to_json(),
         }
     }
 }
@@ -299,6 +977,7 @@ impl ToOpenSearchJson for AggregationType {
     fn to_json(&self) -> Value {
         match self {
             AggregationType::Terms(terms) => terms.to_json(),
+            AggregationType::Cardinality(cardinality) => cardinality.to_json(),
         }
     }
 }
@@ -308,6 +987,7 @@ impl ToOpenSearchJson for SortType {
         match self {
             SortType::Field(field_sort) => field_sort.to_json(),
             SortType::Score => serde_json::json!("_score"),
+            SortType::ScoreWithOrder(score_sort) => score_sort.to_json(),
         }
     }
 }
@@ -820,6 +1500,15 @@ impl ToOpenSearchJson for RangeQuery {
     }
 }
 
+// Sort Order
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum SortOrder {
+    #[serde(rename = "asc")]
+    Asc,
+    #[serde(rename = "desc")]
+    Desc,
+}
+
 // Field Sort
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FieldSort {
@@ -829,12 +1518,10 @@ pub struct FieldSort {
     pub missing: Option<String>,
 }
 
+// Score Sort
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum SortOrder {
-    #[serde(rename = "asc")]
-    Asc,
-    #[serde(rename = "desc")]
-    Desc,
+pub struct ScoreSort {
+    pub order: SortOrder,
 }
 
 impl FieldSort {
@@ -852,23 +1539,57 @@ impl FieldSort {
     }
 }
 
+impl ScoreSort {
+    pub fn new(order: SortOrder) -> Self {
+        Self { order }
+    }
+}
+
 impl ToOpenSearchJson for FieldSort {
     fn to_json(&self) -> Value {
-        let mut field_obj = Map::new();
-        field_obj.insert(
-            "order".to_string(),
+        let mut result = Map::new();
+
+        // Use simplified format when there are no additional parameters
+        if self.missing.is_none() {
+            result.insert(
+                self.field.clone(),
+                Value::String(match self.order {
+                    SortOrder::Asc => "asc".to_string(),
+                    SortOrder::Desc => "desc".to_string(),
+                }),
+            );
+        } else {
+            // Use object format when there are additional parameters
+            let mut field_obj = Map::new();
+            field_obj.insert(
+                "order".to_string(),
+                Value::String(match self.order {
+                    SortOrder::Asc => "asc".to_string(),
+                    SortOrder::Desc => "desc".to_string(),
+                }),
+            );
+
+            if let Some(ref missing) = self.missing {
+                field_obj.insert("missing".to_string(), Value::String(missing.clone()));
+            }
+
+            result.insert(self.field.clone(), Value::Object(field_obj));
+        }
+
+        Value::Object(result)
+    }
+}
+
+impl ToOpenSearchJson for ScoreSort {
+    fn to_json(&self) -> Value {
+        let mut result = Map::new();
+        result.insert(
+            "_score".to_string(),
             Value::String(match self.order {
                 SortOrder::Asc => "asc".to_string(),
                 SortOrder::Desc => "desc".to_string(),
             }),
         );
-
-        if let Some(ref missing) = self.missing {
-            field_obj.insert("missing".to_string(), Value::String(missing.clone()));
-        }
-
-        let mut result = Map::new();
-        result.insert(self.field.clone(), Value::Object(field_obj));
         Value::Object(result)
     }
 }
@@ -1000,6 +1721,30 @@ impl ToOpenSearchJson for RegexpQuery {
     }
 }
 
+// Cardinality Aggregation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CardinalityAggregation {
+    pub field: String,
+}
+
+impl CardinalityAggregation {
+    pub fn new(field: &str) -> Self {
+        Self {
+            field: field.to_string(),
+        }
+    }
+}
+
+impl ToOpenSearchJson for CardinalityAggregation {
+    fn to_json(&self) -> Value {
+        let mut result = Map::new();
+        let mut cardinality_obj = Map::new();
+        cardinality_obj.insert("field".to_string(), Value::String(self.field.clone()));
+        result.insert("cardinality".to_string(), Value::Object(cardinality_obj));
+        Value::Object(result)
+    }
+}
+
 // Terms Aggregation
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TermsAggregation {
@@ -1050,6 +1795,28 @@ impl ToOpenSearchJson for TermsAggregation {
             result.insert("aggs".to_string(), Value::Object(aggs_obj));
         }
 
+        Value::Object(result)
+    }
+}
+
+// Collapse support
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Collapse {
+    pub field: String,
+}
+
+impl Collapse {
+    pub fn new(field: &str) -> Self {
+        Self {
+            field: field.to_string(),
+        }
+    }
+}
+
+impl ToOpenSearchJson for Collapse {
+    fn to_json(&self) -> Value {
+        let mut result = Map::new();
+        result.insert("field".to_string(), Value::String(self.field.clone()));
         Value::Object(result)
     }
 }
@@ -1189,161 +1956,4 @@ impl ToOpenSearchJson for HighlightField {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_term_query_simple() {
-        let query = QueryType::term("status", "published");
-        let json = query.to_json();
-
-        assert_eq!(
-            json["term"]["status"],
-            Value::String("published".to_string())
-        );
-    }
-
-    #[test]
-    fn test_term_query_with_boost() {
-        let query = QueryType::Term(TermQuery::new("status", "published").boost(2.0));
-        let json = query.to_json();
-
-        assert_eq!(
-            json["term"]["status"]["value"],
-            Value::String("published".to_string())
-        );
-        assert_eq!(json["term"]["status"]["boost"], 2.0);
-    }
-
-    #[test]
-    fn test_match_phrase_simple() {
-        let query = QueryType::match_phrase("content", "testing");
-        let json = query.to_json();
-
-        assert_eq!(
-            json["match_phrase"]["content"],
-            Value::String("testing".to_string())
-        );
-    }
-
-    #[test]
-    fn test_match_phrase_with_options() {
-        let query = QueryType::MatchPhrase(MatchPhraseQuery::new("content", "testing").slop(2));
-        let json = query.to_json();
-
-        assert_eq!(
-            json["match_phrase"]["content"]["query"],
-            Value::String("testing".to_string())
-        );
-        assert_eq!(
-            json["match_phrase"]["content"]["slop"],
-            Value::Number(2.into())
-        );
-    }
-
-    #[test]
-    fn test_terms_query_simple() {
-        let query = QueryType::terms("file_type", vec!["pdf", "docx"]);
-        let json = query.to_json();
-
-        let expected_values = vec![
-            Value::String("pdf".to_string()),
-            Value::String("docx".to_string()),
-        ];
-        assert_eq!(json["terms"]["file_type"], Value::Array(expected_values));
-    }
-
-    #[test]
-    fn test_bool_query() {
-        let bool_query = QueryType::bool_query()
-            .must(QueryType::term("status", "published"))
-            .should(QueryType::match_query("title", "rust"))
-            .minimum_should_match(1)
-            .build();
-
-        let json = bool_query.to_json();
-        assert!(json["bool"]["must"].is_array());
-        assert!(json["bool"]["should"].is_array());
-        assert_eq!(
-            json["bool"]["minimum_should_match"],
-            Value::Number(1.into())
-        );
-    }
-
-    #[test]
-    fn test_regexp_query() {
-        let query = QueryType::bool_query()
-            .must(QueryType::Regexp(RegexpQuery::new(
-                "content",
-                "test\\&test",
-            )))
-            .build();
-        let json = query.to_json();
-
-        let regexp = serde_json::json!({
-            "regexp": {
-                "content": {
-                    "value": "test\\&test"
-                }
-            }
-        });
-
-        assert_eq!(json["bool"]["must"][0], regexp);
-    }
-
-    #[test]
-    fn test_regexp_query_with_flags() {
-        let query = QueryType::bool_query()
-            .must(QueryType::Regexp(
-                RegexpQuery::new("content", "test\\&test").flags(vec![
-                    RegexpQueryFlags::Intersection,
-                    RegexpQueryFlags::Empty,
-                ]),
-            ))
-            .build();
-        let json = query.to_json();
-
-        let regexp = serde_json::json!({
-            "regexp": {
-                "content": {
-                    "value": "test\\&test",
-                    "flags": "INTERSECTION|EMPTY",
-                }
-            }
-        });
-
-        assert_eq!(json["bool"]["must"][0], regexp);
-    }
-
-    #[test]
-    fn test_search_request_serialization() {
-        let request = SearchRequest::new()
-            .query(QueryType::match_query("title", "elasticsearch"))
-            .size(10)
-            .from(0)
-            .sort(SortType::Field(FieldSort::new(
-                "created_at",
-                SortOrder::Desc,
-            )));
-
-        let json = request.to_json();
-        assert_eq!(
-            json["query"]["match"]["title"],
-            Value::String("elasticsearch".to_string())
-        );
-        assert_eq!(json["size"], Value::Number(10.into()));
-        assert_eq!(json["from"], Value::Number(0.into()));
-    }
-
-    #[test]
-    fn test_serde_roundtrip() {
-        let request = SearchRequest::new()
-            .query(QueryType::match_query("title", "test"))
-            .size(5);
-
-        let serialized = serde_json::to_string(&request).unwrap();
-        let deserialized: SearchRequest = serde_json::from_str(&serialized).unwrap();
-
-        assert_eq!(deserialized.size, Some(5));
-    }
-}
+mod test;

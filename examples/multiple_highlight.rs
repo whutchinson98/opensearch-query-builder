@@ -104,19 +104,13 @@ pub fn main() {
         "size": page_size,
         "sort":  [
             {
-                "updated_at": {
-                    "order": "desc"
-                }
+                "updated_at": "desc"
             },
             {
-                "document_id": {
-                    "order": "asc"
-                }
+                "document_id": "asc"
             },
             {
-                "node_id": {
-                    "order": "asc"
-                }
+                "node_id": "asc"
             },
         ],
         "highlight": {
@@ -138,7 +132,8 @@ pub fn main() {
         },
     });
 
-    assert_eq!(result.to_json(), reference);
-
-    // println!("{}", result.to_json());
+    assert_eq!(
+        serde_json::to_string(&result.to_json()).unwrap(),
+        serde_json::to_string(&reference).unwrap()
+    );
 }

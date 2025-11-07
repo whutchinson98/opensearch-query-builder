@@ -184,6 +184,46 @@ impl Visualizable for QueryType {
             QueryType::WildCard(wildcard) => VisualizationNode::new("wildcard")
                 .with_detail("field", Value::String(wildcard.field.clone()))
                 .with_detail("value", Value::String(wildcard.value.clone())),
+            QueryType::FunctionScore(function_score) => {
+                let mut node = VisualizationNode::new("function_score");
+
+                if let Some(ref query) = function_score.query {
+                    node = node.with_child(query.visualize().with_clause_type("query"));
+                }
+
+                if let Some(ref score_mode) = function_score.score_mode {
+                    node =
+                        node.with_detail("score_mode", Value::String(format!("{:?}", score_mode)));
+                }
+
+                if let Some(ref boost_mode) = function_score.boost_mode {
+                    node =
+                        node.with_detail("boost_mode", Value::String(format!("{:?}", boost_mode)));
+                }
+
+                if let Some(max_boost) = function_score.max_boost {
+                    node = node.with_detail(
+                        "max_boost",
+                        Value::Number(serde_json::Number::from_f64(max_boost).unwrap()),
+                    );
+                }
+
+                if let Some(min_score) = function_score.min_score {
+                    node = node.with_detail(
+                        "min_score",
+                        Value::Number(serde_json::Number::from_f64(min_score).unwrap()),
+                    );
+                }
+
+                if !function_score.functions.is_empty() {
+                    node = node.with_detail(
+                        "functions_count",
+                        Value::Number((function_score.functions.len() as u64).into()),
+                    );
+                }
+
+                node
+            }
         }
     }
 }
@@ -195,6 +235,8 @@ impl Visualizable for SortType {
                 .with_detail("field", Value::String(field_sort.field.clone()))
                 .with_detail("order", Value::String(format!("{:?}", field_sort.order))),
             SortType::Score => VisualizationNode::new("score_sort"),
+            SortType::ScoreWithOrder(score_sort) => VisualizationNode::new("score_sort")
+                .with_detail("order", Value::String(format!("{:?}", score_sort.order))),
         }
     }
 }
@@ -212,32 +254,13 @@ impl Visualizable for AggregationType {
 
                 node
             }
+            AggregationType::Cardinality(cardinality_agg) => {
+                VisualizationNode::new("cardinality_agg")
+                    .with_detail("field", Value::String(cardinality_agg.field.clone()))
+            }
         }
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_value_formatting() {
-        let node = VisualizationNode::new("test");
-
-        // Test string formatting
-        assert_eq!(
-            node.format_value(&Value::String("test".to_string())),
-            "\"test\""
-        );
-
-        // Test number formatting
-        assert_eq!(node.format_value(&Value::Number(42.into())), "42");
-
-        // Test array formatting
-        let arr = Value::Array(vec![
-            Value::String("a".to_string()),
-            Value::String("b".to_string()),
-        ]);
-        assert_eq!(node.format_value(&arr), "[\"a\", \"b\"]");
-    }
-}
+mod test;
