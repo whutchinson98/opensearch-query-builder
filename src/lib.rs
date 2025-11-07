@@ -258,7 +258,7 @@ impl BoolQueryBuilder {
         self
     }
 
-    pub fn boost(mut self, boost: f32) -> Self {
+    pub fn boost(mut self, boost: f64) -> Self {
         self.inner = self.inner.boost(boost);
         self
     }
@@ -300,7 +300,7 @@ impl RangeQueryBuilder {
         self
     }
 
-    pub fn boost(mut self, boost: f32) -> Self {
+    pub fn boost(mut self, boost: f64) -> Self {
         self.inner = self.inner.boost(boost);
         self
     }
@@ -768,7 +768,7 @@ pub struct FunctionScoreQuery {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_boost: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub boost: Option<f32>,
+    pub boost: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub min_score: Option<f64>,
 }
@@ -817,7 +817,7 @@ impl FunctionScoreQuery {
         self
     }
 
-    pub fn boost(mut self, boost: f32) -> Self {
+    pub fn boost(mut self, boost: f64) -> Self {
         self.boost = Some(boost);
         self
     }
@@ -940,7 +940,7 @@ impl FunctionScoreQueryBuilder {
         self
     }
 
-    pub fn boost(mut self, boost: f32) -> Self {
+    pub fn boost(mut self, boost: f64) -> Self {
         self.inner = self.inner.boost(boost);
         self
     }
@@ -998,7 +998,7 @@ pub struct TermQuery {
     pub field: String,
     pub value: Value,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub boost: Option<f32>,
+    pub boost: Option<f64>,
 }
 
 impl TermQuery {
@@ -1010,7 +1010,7 @@ impl TermQuery {
         }
     }
 
-    pub fn boost(mut self, boost: f32) -> Self {
+    pub fn boost(mut self, boost: f64) -> Self {
         self.boost = Some(boost);
         self
     }
@@ -1045,7 +1045,7 @@ pub struct TermsQuery {
     pub field: String,
     pub values: Vec<Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub boost: Option<f32>,
+    pub boost: Option<f64>,
 }
 
 impl TermsQuery {
@@ -1057,7 +1057,7 @@ impl TermsQuery {
         }
     }
 
-    pub fn boost(mut self, boost: f32) -> Self {
+    pub fn boost(mut self, boost: f64) -> Self {
         self.boost = Some(boost);
         self
     }
@@ -1096,7 +1096,7 @@ pub struct MatchPhraseQuery {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub analyzer: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub boost: Option<f32>,
+    pub boost: Option<f64>,
 }
 
 impl MatchPhraseQuery {
@@ -1120,7 +1120,7 @@ impl MatchPhraseQuery {
         self
     }
 
-    pub fn boost(mut self, boost: f32) -> Self {
+    pub fn boost(mut self, boost: f64) -> Self {
         self.boost = Some(boost);
         self
     }
@@ -1170,7 +1170,7 @@ pub struct MatchQuery {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fuzziness: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub boost: Option<f32>,
+    pub boost: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub minimum_should_match: Option<String>,
 }
@@ -1197,7 +1197,7 @@ impl MatchQuery {
         self
     }
 
-    pub fn boost(mut self, boost: f32) -> Self {
+    pub fn boost(mut self, boost: f64) -> Self {
         self.boost = Some(boost);
         self
     }
@@ -1261,7 +1261,7 @@ pub struct MatchPhrasePrefixQuery {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub slop: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub boost: Option<f32>,
+    pub boost: Option<f64>,
 }
 
 impl MatchPhrasePrefixQuery {
@@ -1285,7 +1285,7 @@ impl MatchPhrasePrefixQuery {
         self
     }
 
-    pub fn boost(mut self, boost: f32) -> Self {
+    pub fn boost(mut self, boost: f64) -> Self {
         self.boost = Some(boost);
         self
     }
@@ -1337,7 +1337,7 @@ pub struct BoolQuery {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub minimum_should_match: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub boost: Option<f32>,
+    pub boost: Option<f64>,
 }
 
 impl BoolQuery {
@@ -1370,7 +1370,7 @@ impl BoolQuery {
         self
     }
 
-    pub fn boost(mut self, boost: f32) -> Self {
+    pub fn boost(mut self, boost: f64) -> Self {
         self.boost = Some(boost);
         self
     }
@@ -1430,7 +1430,7 @@ pub struct RangeQuery {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub lt: Option<Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub boost: Option<f32>,
+    pub boost: Option<f64>,
 }
 
 impl RangeQuery {
@@ -1465,7 +1465,7 @@ impl RangeQuery {
         self
     }
 
-    pub fn boost(mut self, boost: f32) -> Self {
+    pub fn boost(mut self, boost: f64) -> Self {
         self.boost = Some(boost);
         self
     }

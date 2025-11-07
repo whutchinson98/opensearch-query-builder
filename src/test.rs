@@ -1,6 +1,15 @@
 use super::*;
 
 #[test]
+fn test_boost_floating_point() {
+    let query = QueryType::Match(MatchQuery::new("field", "value").boost(0.1));
+
+    let json = query.to_json();
+
+    assert_eq!(json["match"]["field"]["boost"], 0.1);
+}
+
+#[test]
 fn test_term_query_simple() {
     let query = QueryType::term("status", "published");
     let json = query.to_json();
