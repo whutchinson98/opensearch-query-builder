@@ -438,3 +438,114 @@ fn test_function_score_all_modes() {
         assert_eq!(json["function_score"]["boost_mode"], expected);
     }
 }
+
+#[test]
+fn test_search_request_builder_dynamic() {
+    // Create a builder
+    let mut builder = SearchRequestBuilder::new();
+
+    // Dynamically add fields based on conditions
+    let include_query = true;
+    let page = 2;
+    let page_size = 20;
+
+    if include_query {
+        builder.query(QueryType::match_query("title", "rust programming"));
+    }
+
+    // Add pagination
+    builder.from(page * page_size);
+    builder.size(page_size);
+
+    // Conditionally add sorting
+    let sort_by_date = true;
+    if sort_by_date {
+        builder.add_sort(SortType::Field(FieldSort::new("created_at", SortOrder::Desc)));
+    }
+
+    // Add multiple source fields
+    builder.add_source_field("title".to_string());
+    builder.add_source_field("content".to_string());
+    builder.add_source_field("created_at".to_string());
+
+    // Add aggregations dynamically
+    let categories = vec!["tech", "science"];
+    for category in categories {
+        builder.add_agg(
+            format!("{}_count", category),
+            AggregationType::Terms(TermsAggregation::new(category)),
+        );
+    }
+
+    // Build the final request
+    let request = builder.build();
+
+    // Verify the request
+    let json = request.to_json();
+    assert!(json["query"].is_object());
+    assert_eq!(json["size"], Value::Number(20.into()));
+    assert_eq!(json["from"], Value::Number(40.into()));
+    assert_eq!(json["_source"].as_array().unwrap().len(), 3);
+    assert!(json["sort"].is_array());
+    assert!(json["aggs"]["tech_count"].is_object());
+    assert!(json["aggs"]["science_count"].is_object());
+}
+
+#[test]
+fn test_search_request_builder_mutable_updates() {
+    // Create a builder
+    let mut builder = SearchRequestBuilder::new();
+
+    // Add initial query
+    builder.query(QueryType::match_query("title", "rust"));
+
+    // Add some sorts
+    builder.add_sort(SortType::Field(FieldSort::new("score", SortOrder::Desc)));
+    builder.add_sort(SortType::Field(FieldSort::new("date", SortOrder::Desc)));
+
+    // Change mind - clear sorts and add a different one
+    builder.clear_sorts();
+    builder.add_sort(SortType::Field(FieldSort::new("relevance", SortOrder::Asc)));
+
+    // Add aggregations
+    builder.add_agg(
+        "categories".to_string(),
+        AggregationType::Terms(TermsAggregation::new("category")),
+    );
+    builder.add_agg(
+        "authors".to_string(),
+        AggregationType::Terms(TermsAggregation::new("author")),
+    );
+
+    // Remove one aggregation
+    builder.remove_agg("authors");
+
+    // Build and verify
+    let request = builder.build();
+    let json = request.to_json();
+
+    assert_eq!(json["sort"].as_array().unwrap().len(), 1);
+    assert!(json["aggs"]["categories"].is_object());
+    assert!(json["aggs"]["authors"].is_null());
+}
+
+#[test]
+fn test_search_request_builder_fluent_style() {
+    // The builder also supports fluent-style chaining since methods return &mut self
+    let mut builder = SearchRequestBuilder::new();
+
+    builder
+        .query(QueryType::match_query("content", "opensearch"))
+        .size(50)
+        .from(0)
+        .track_total_hits(true)
+        .add_source_field("id".to_string())
+        .add_source_field("title".to_string());
+
+    let request = builder.build();
+    let json = request.to_json();
+
+    assert_eq!(json["size"], Value::Number(50.into()));
+    assert_eq!(json["track_total_hits"], Value::Bool(true));
+    assert_eq!(json["_source"].as_array().unwrap().len(), 2);
+}
