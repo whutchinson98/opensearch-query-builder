@@ -1059,6 +1059,8 @@ impl ToOpenSearchJson for TermsAggregation {
 pub struct Highlight {
     #[serde(skip_serializing_if = "HashMap::is_empty", default)]
     pub fields: HashMap<String, HighlightField>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub require_field_match: Option<bool>,
 }
 
 impl Highlight {
@@ -1068,6 +1070,11 @@ impl Highlight {
 
     pub fn field(mut self, field_name: &str, highlight_field: HighlightField) -> Self {
         self.fields.insert(field_name.to_string(), highlight_field);
+        self
+    }
+
+    pub fn require_field_match(mut self, require_field_match: bool) -> Self {
+        self.require_field_match = Some(require_field_match);
         self
     }
 }
@@ -1084,6 +1091,13 @@ impl ToOpenSearchJson for Highlight {
             result.insert("fields".to_string(), Value::Object(fields_obj));
         }
 
+        if let Some(require_field_match) = self.require_field_match {
+            result.insert(
+                "require_field_match".to_string(),
+                Value::Bool(require_field_match),
+            );
+        }
+
         Value::Object(result)
     }
 }
@@ -1098,8 +1112,6 @@ pub struct HighlightField {
     pub pre_tags: Vec<String>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub post_tags: Vec<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub require_field_match: Option<bool>,
 }
 
 impl Default for HighlightField {
@@ -1115,7 +1127,6 @@ impl HighlightField {
             number_of_fragments: None,
             pre_tags: Vec::new(),
             post_tags: Vec::new(),
-            require_field_match: None,
         }
     }
 
@@ -1136,11 +1147,6 @@ impl HighlightField {
 
     pub fn post_tags(mut self, post_tags: Vec<String>) -> Self {
         self.post_tags = post_tags;
-        self
-    }
-
-    pub fn require_field_match(mut self, require_field_match: bool) -> Self {
-        self.require_field_match = Some(require_field_match);
         self
     }
 }
@@ -1176,13 +1182,6 @@ impl ToOpenSearchJson for HighlightField {
                 .map(|tag| Value::String(tag.clone()))
                 .collect();
             result.insert("post_tags".to_string(), Value::Array(post_tags));
-        }
-
-        if let Some(require_field_match) = self.require_field_match {
-            result.insert(
-                "require_field_match".to_string(),
-                Value::Bool(require_field_match),
-            );
         }
 
         Value::Object(result)

@@ -50,8 +50,7 @@ pub fn main() {
                     .highlight_type("unified")
                     .number_of_fragments(500)
                     .pre_tags(vec!["<macro_em>".to_string()])
-                    .post_tags(vec!["</macro_em>".to_string()])
-                    .require_field_match(true),
+                    .post_tags(vec!["</macro_em>".to_string()]),
             ),
         );
 

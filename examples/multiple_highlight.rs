@@ -36,14 +36,24 @@ pub fn main() {
         )))
         .sort(SortType::Field(FieldSort::new("node_id", SortOrder::Asc)))
         .highlight(
-            Highlight::new().field(
-                "content",
-                HighlightField::new()
-                    .highlight_type("unified")
-                    .number_of_fragments(500)
-                    .pre_tags(vec!["<macro_em>".to_string()])
-                    .post_tags(vec!["</macro_em>".to_string()]),
-            ),
+            Highlight::new()
+                .field(
+                    "content",
+                    HighlightField::new()
+                        .highlight_type("unified")
+                        .number_of_fragments(500)
+                        .pre_tags(vec!["<macro_em>".to_string()])
+                        .post_tags(vec!["</macro_em>".to_string()]),
+                )
+                .field(
+                    "document_name",
+                    HighlightField::new()
+                        .highlight_type("unified")
+                        .number_of_fragments(1)
+                        .pre_tags(vec!["<macro_em>".to_string()])
+                        .post_tags(vec!["</macro_em>".to_string()]),
+                )
+                .require_field_match(true),
         );
 
     let reference = serde_json::json!({
@@ -112,12 +122,19 @@ pub fn main() {
         "highlight": {
             "fields": {
                 "content": {
-                    "type": "unified", // The way the highlight is done
-                    "number_of_fragments": 500, // Breaks up the "content" field into said
-                    "pre_tags": ["<macro_em>"], // HTML tag before highlight
-                    "post_tags": ["</macro_em>"], // HTML tag after highlight
+                    "type": "unified",
+                    "number_of_fragments": 500,
+                    "pre_tags": ["<macro_em>"],
+                    "post_tags": ["</macro_em>"],
+                },
+                "document_name": {
+                    "type": "unified",
+                    "number_of_fragments": 1,
+                    "pre_tags": ["<macro_em>"],
+                    "post_tags": ["</macro_em>"],
                 }
-            }
+            },
+            "require_field_match": true,
         },
     });
 
