@@ -908,7 +908,7 @@ impl ToOpenSearchJson for WildcardQuery {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum RegexpQueryFlags {
     /// Enables all optional features (default behavior)
@@ -924,6 +924,7 @@ pub enum RegexpQueryFlags {
     /// Enables interval arithmetic on character classes
     Interval,
     /// Disables all optional features (default behavior)
+    #[default]
     None,
 }
 
@@ -944,12 +945,6 @@ impl Display for RegexpQueryFlags {
             RegexpQueryFlags::Interval => write!(f, "INTERVAL"),
             RegexpQueryFlags::None => write!(f, "NONE"),
         }
-    }
-}
-
-impl Default for RegexpQueryFlags {
-    fn default() -> Self {
-        Self::None
     }
 }
 
