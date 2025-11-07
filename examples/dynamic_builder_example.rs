@@ -19,7 +19,7 @@ fn main() {
         builder.query(
             QueryType::bool_query()
                 .must(QueryType::match_query("content", text))
-                .build()
+                .build(),
         );
     }
 
@@ -35,7 +35,7 @@ fn main() {
             QueryType::bool_query()
                 .must(QueryType::match_query("content", "rust programming"))
                 .filter(QueryType::term("category", category))
-                .build()
+                .build(),
         );
     }
 
@@ -44,7 +44,7 @@ fn main() {
         builder.highlight(
             Highlight::new()
                 .field("content", HighlightField::new())
-                .field("title", HighlightField::new())
+                .field("title", HighlightField::new()),
         );
     }
 
@@ -58,7 +58,10 @@ fn main() {
     let request = builder.build();
 
     println!("Generated OpenSearch Query:");
-    println!("{}", serde_json::to_string_pretty(&request.to_json()).unwrap());
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&request.to_json()).unwrap()
+    );
     println!("\n");
 
     // Example 2: Iteratively building a request
@@ -71,18 +74,21 @@ fn main() {
     builder2.size(10);
 
     // Add sorting
-    builder2.add_sort(SortType::Field(FieldSort::new("created_at", SortOrder::Desc)));
+    builder2.add_sort(SortType::Field(FieldSort::new(
+        "created_at",
+        SortOrder::Desc,
+    )));
 
     // Add first aggregation
     builder2.add_agg(
         "by_category".to_string(),
-        AggregationType::Terms(TermsAggregation::new("category"))
+        AggregationType::Terms(TermsAggregation::new("category")),
     );
 
     // Later, add another aggregation
     builder2.add_agg(
         "by_author".to_string(),
-        AggregationType::Terms(TermsAggregation::new("author"))
+        AggregationType::Terms(TermsAggregation::new("author")),
     );
 
     // Change your mind about one aggregation
@@ -91,13 +97,16 @@ fn main() {
     // Add a different aggregation instead
     builder2.add_agg(
         "unique_authors".to_string(),
-        AggregationType::Cardinality(CardinalityAggregation::new("author"))
+        AggregationType::Cardinality(CardinalityAggregation::new("author")),
     );
 
     let request2 = builder2.build();
 
     println!("Generated OpenSearch Query:");
-    println!("{}", serde_json::to_string_pretty(&request2.to_json()).unwrap());
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&request2.to_json()).unwrap()
+    );
     println!("\n");
 
     // Example 3: Using fluent style with the builder
@@ -119,5 +128,8 @@ fn main() {
     let request3 = builder3.build();
 
     println!("Generated OpenSearch Query:");
-    println!("{}", serde_json::to_string_pretty(&request3.to_json()).unwrap());
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&request3.to_json()).unwrap()
+    );
 }

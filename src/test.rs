@@ -460,7 +460,10 @@ fn test_search_request_builder_dynamic() {
     // Conditionally add sorting
     let sort_by_date = true;
     if sort_by_date {
-        builder.add_sort(SortType::Field(FieldSort::new("created_at", SortOrder::Desc)));
+        builder.add_sort(SortType::Field(FieldSort::new(
+            "created_at",
+            SortOrder::Desc,
+        )));
     }
 
     // Add multiple source fields
