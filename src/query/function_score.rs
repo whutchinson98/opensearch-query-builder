@@ -94,6 +94,12 @@ impl FunctionScoreQuery {
     }
 }
 
+impl From<FunctionScoreQuery> for QueryType {
+    fn from(function_score_query: FunctionScoreQuery) -> Self {
+        QueryType::FunctionScore(function_score_query)
+    }
+}
+
 impl ToOpenSearchJson for FunctionScoreQuery {
     fn to_json(&self) -> Value {
         let mut function_score_obj = Map::new();

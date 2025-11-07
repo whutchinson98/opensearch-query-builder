@@ -67,3 +67,50 @@ impl ToOpenSearchJson for QueryType {
         }
     }
 }
+
+impl QueryType {
+    /// Convenience method for creating a term query
+    pub fn term<T: Into<Value>>(field: &str, value: T) -> Self {
+        QueryType::Term(TermQuery::new(field, value))
+    }
+
+    /// Convenience method for creating a terms query
+    pub fn terms<T: Into<Value>>(field: &str, values: Vec<T>) -> Self {
+        QueryType::Terms(TermsQuery::new(field, values))
+    }
+
+    /// Convenience method for creating a wildcard query
+    pub fn wildcard(field: &str, value: &str, case_insensitive: bool) -> Self {
+        QueryType::WildCard(WildcardQuery::new(field, value, case_insensitive))
+    }
+
+    /// Convenience method for creating a regexp query
+    pub fn regexp(field: &str, value: &str) -> Self {
+        QueryType::Regexp(RegexpQuery::new(field, value))
+    }
+
+    /// Convenience method for creating a match query
+    pub fn match_phrase(field: &str, query: &str) -> Self {
+        QueryType::MatchPhrase(MatchPhraseQuery::new(field, query))
+    }
+
+    /// Convenience method for creating a match phrase prefix query
+    pub fn match_phrase_prefix(field: &str, query: &str) -> Self {
+        QueryType::MatchPhrasePrefix(MatchPhrasePrefixQuery::new(field, query))
+    }
+
+    /// Convenience method for starting a bool query
+    pub fn bool_query() -> BoolQueryBuilder {
+        BoolQueryBuilder::new()
+    }
+
+    /// Convenience method for starting a match query
+    pub fn range(field: &str) -> RangeQueryBuilder {
+        RangeQueryBuilder::new(field)
+    }
+
+    /// Convenience method for starting a function score query
+    pub fn function_score() -> FunctionScoreQueryBuilder {
+        FunctionScoreQueryBuilder::new()
+    }
+}

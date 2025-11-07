@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::ToOpenSearchJson;
+use crate::{QueryType, ToOpenSearchJson};
 
 /// Wildcard Query
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -23,6 +23,12 @@ impl WildcardQuery {
             value: value.to_string(),
             case_insensitive,
         }
+    }
+}
+
+impl From<WildcardQuery> for QueryType {
+    fn from(wildcard_query: WildcardQuery) -> Self {
+        QueryType::WildCard(wildcard_query)
     }
 }
 

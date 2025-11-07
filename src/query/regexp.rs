@@ -3,7 +3,7 @@ use std::fmt::Display;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::ToOpenSearchJson;
+use crate::{QueryType, ToOpenSearchJson};
 
 /// Enum representing the different flags that can be used with a RegexpQuery
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -72,6 +72,12 @@ impl RegexpQuery {
     pub fn flags(mut self, flags: Vec<RegexpQueryFlags>) -> Self {
         self.flags = Some(flags);
         self
+    }
+}
+
+impl From<RegexpQuery> for QueryType {
+    fn from(regexp_query: RegexpQuery) -> Self {
+        QueryType::Regexp(regexp_query)
     }
 }
 

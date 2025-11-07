@@ -69,6 +69,12 @@ impl BoolQuery {
     }
 }
 
+impl From<BoolQuery> for QueryType {
+    fn from(bool_query: BoolQuery) -> Self {
+        QueryType::Bool(bool_query)
+    }
+}
+
 impl ToOpenSearchJson for BoolQuery {
     fn to_json(&self) -> Value {
         let mut bool_obj = Map::new();

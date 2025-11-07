@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
-use crate::ToOpenSearchJson;
+use crate::{QueryType, ToOpenSearchJson};
 
 /// Match Query
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -59,6 +59,12 @@ impl MatchQuery {
     pub fn minimum_should_match(mut self, minimum_should_match: &str) -> Self {
         self.minimum_should_match = Some(minimum_should_match.to_string());
         self
+    }
+}
+
+impl From<MatchQuery> for QueryType {
+    fn from(match_query: MatchQuery) -> Self {
+        QueryType::Match(match_query)
     }
 }
 

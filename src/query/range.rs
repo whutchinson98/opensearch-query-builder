@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
-use crate::ToOpenSearchJson;
+use crate::{QueryType, ToOpenSearchJson};
 
 /// Range Query
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -63,6 +63,12 @@ impl RangeQuery {
     pub fn boost(mut self, boost: f64) -> Self {
         self.boost = Some(boost);
         self
+    }
+}
+
+impl From<RangeQuery> for QueryType {
+    fn from(range_query: RangeQuery) -> Self {
+        QueryType::Range(range_query)
     }
 }
 

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
-use crate::ToOpenSearchJson;
+use crate::{QueryType, ToOpenSearchJson};
 
 /// Match Phrase Prefix Query
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -49,6 +49,12 @@ impl MatchPhrasePrefixQuery {
     pub fn boost(mut self, boost: f64) -> Self {
         self.boost = Some(boost);
         self
+    }
+}
+
+impl From<MatchPhrasePrefixQuery> for QueryType {
+    fn from(match_phrase_prefix_query: MatchPhrasePrefixQuery) -> Self {
+        QueryType::MatchPhrasePrefix(match_phrase_prefix_query)
     }
 }
 

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
-use crate::ToOpenSearchJson;
+use crate::{QueryType, ToOpenSearchJson};
 
 /// Term Query
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -29,6 +29,12 @@ impl TermQuery {
     pub fn boost(mut self, boost: f64) -> Self {
         self.boost = Some(boost);
         self
+    }
+}
+
+impl From<TermQuery> for QueryType {
+    fn from(term_query: TermQuery) -> Self {
+        QueryType::Term(term_query)
     }
 }
 
