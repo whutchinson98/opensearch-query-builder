@@ -534,8 +534,10 @@ impl ToOpenSearchJson for MatchQuery {
         let mut match_obj = Map::new();
 
         // Check if we need the complex form
-        let has_options =
-            self.operator.is_some() || self.fuzziness.is_some() || self.boost.is_some() || self.minimum_should_match.is_some();
+        let has_options = self.operator.is_some()
+            || self.fuzziness.is_some()
+            || self.boost.is_some()
+            || self.minimum_should_match.is_some();
 
         if has_options {
             let mut field_obj = Map::new();
