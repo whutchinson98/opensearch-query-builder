@@ -1,8 +1,10 @@
+use std::borrow::Cow;
 use std::collections::HashMap;
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_json::{Map, Value};
 
+use crate::util::is_empty_slice;
 use crate::{QueryType, ToOpenSearchJson};
 
 mod aggregation_type;
@@ -16,11 +18,11 @@ pub use highlight::*;
 pub use sort_type::*;
 
 /// Struct representing a search request.
-#[derive(Default, Debug, Clone, Serialize, Deserialize)]
-pub struct SearchRequest {
+#[derive(Default, Debug, Clone, Serialize)]
+pub struct SearchRequest<'a> {
     /// Query
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub query: Option<QueryType>,
+    pub query: Option<QueryType<'a>>,
     /// Maximum number of results to return
     #[serde(skip_serializing_if = "Option::is_none")]
     pub size: Option<u32>,
@@ -28,33 +30,34 @@ pub struct SearchRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub from: Option<u32>,
     /// Sort criteria
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub sort: Vec<SortType>,
+    #[serde(skip_serializing_if = "is_empty_slice", default, borrow)]
+    pub sort: Cow<'a, [SortType<'a>]>,
     /// Aggregations
     #[serde(skip_serializing_if = "HashMap::is_empty", default)]
-    pub aggs: HashMap<String, AggregationType>,
+    #[serde(borrow)]
+    pub aggs: HashMap<Cow<'a, str>, AggregationType<'a>>,
     /// Source fields
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub _source: Vec<String>,
+    #[serde(skip_serializing_if = "is_empty_slice", default, borrow)]
+    pub _source: Cow<'a, [Cow<'a, str>]>,
     /// Highlight
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub highlight: Option<Highlight>,
+    pub highlight: Option<Highlight<'a>>,
     /// Track total hits
     #[serde(skip_serializing_if = "Option::is_none")]
     pub track_total_hits: Option<bool>,
     /// Collapse
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub collapse: Option<Collapse>,
+    pub collapse: Option<Collapse<'a>>,
 }
 
-impl SearchRequest {
+impl<'a> SearchRequest<'a> {
     /// Create a new SearchRequest
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Set the query
-    pub fn query(mut self, query: QueryType) -> Self {
+    pub fn query(mut self, query: QueryType<'a>) -> Self {
         self.query = Some(query);
         self
     }
@@ -72,25 +75,29 @@ impl SearchRequest {
     }
 
     /// Add a sort criterion
-    pub fn sort(mut self, sort: SortType) -> Self {
-        self.sort.push(sort);
+    pub fn sort(mut self, sort: SortType<'a>) -> Self {
+        self.sort.to_mut().push(sort);
         self
     }
 
     /// Add an aggregation
-    pub fn agg(mut self, name: String, agg: AggregationType) -> Self {
-        self.aggs.insert(name, agg);
+    pub fn agg(mut self, name: &'a str, agg: AggregationType<'a>) -> Self {
+        self.aggs.insert(Cow::Borrowed(name), agg);
         self
     }
 
     /// Set source fields
-    pub fn source_fields(mut self, fields: Vec<String>) -> Self {
-        self._source = fields;
+    pub fn source_fields<I>(mut self, fields: I) -> Self
+    where
+        I: IntoIterator,
+        I::Item: Into<Cow<'a, str>>,
+    {
+        self._source = fields.into_iter().map(|s| s.into()).collect();
         self
     }
 
     /// Set the highlight configuration
-    pub fn highlight(mut self, highlight: Highlight) -> Self {
+    pub fn highlight(mut self, highlight: Highlight<'a>) -> Self {
         self.highlight = Some(highlight);
         self
     }
@@ -102,13 +109,13 @@ impl SearchRequest {
     }
 
     /// Set the collapse configuration
-    pub fn collapse(mut self, collapse: Collapse) -> Self {
+    pub fn collapse(mut self, collapse: Collapse<'a>) -> Self {
         self.collapse = Some(collapse);
         self
     }
 }
 
-impl ToOpenSearchJson for SearchRequest {
+impl<'a> ToOpenSearchJson for SearchRequest<'a> {
     fn to_json(&self) -> Value {
         let mut result = Map::new();
 
@@ -132,7 +139,7 @@ impl ToOpenSearchJson for SearchRequest {
         if !self.aggs.is_empty() {
             let mut aggs_obj = Map::new();
             for (name, agg) in &self.aggs {
-                aggs_obj.insert(name.clone(), agg.to_json());
+                aggs_obj.insert(name.to_string(), agg.to_json());
             }
             result.insert("aggs".to_string(), Value::Object(aggs_obj));
         }
@@ -141,7 +148,7 @@ impl ToOpenSearchJson for SearchRequest {
             let sources: Vec<Value> = self
                 ._source
                 .iter()
-                .map(|s| Value::String(s.clone()))
+                .map(|s| Value::String(s.to_string()))
                 .collect();
             result.insert("_source".to_string(), Value::Array(sources));
         }
@@ -169,26 +176,26 @@ impl ToOpenSearchJson for SearchRequest {
 /// Unlike the fluent methods on SearchRequest, this builder uses mutable methods
 /// so you can dynamically add fields over time before calling build().
 #[derive(Default, Debug, Clone)]
-pub struct SearchRequestBuilder {
-    query: Option<QueryType>,
+pub struct SearchRequestBuilder<'a> {
+    query: Option<QueryType<'a>>,
     size: Option<u32>,
     from: Option<u32>,
-    sort: Vec<SortType>,
-    aggs: HashMap<String, AggregationType>,
-    _source: Vec<String>,
-    highlight: Option<Highlight>,
+    sort: Cow<'a, [SortType<'a>]>,
+    aggs: HashMap<Cow<'a, str>, AggregationType<'a>>,
+    _source: Cow<'a, [Cow<'a, str>]>,
+    highlight: Option<Highlight<'a>>,
     track_total_hits: Option<bool>,
-    collapse: Option<Collapse>,
+    collapse: Option<Collapse<'a>>,
 }
 
-impl SearchRequestBuilder {
+impl<'a> SearchRequestBuilder<'a> {
     /// Create a new empty SearchRequestBuilder
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Set the query for this search request
-    pub fn query(&mut self, query: QueryType) -> &mut Self {
+    pub fn query(&mut self, query: QueryType<'a>) -> &mut Self {
         self.query = Some(query);
         self
     }
@@ -206,32 +213,32 @@ impl SearchRequestBuilder {
     }
 
     /// Add a sort criterion (can be called multiple times)
-    pub fn add_sort(&mut self, sort: SortType) -> &mut Self {
-        self.sort.push(sort);
+    pub fn add_sort(&mut self, sort: SortType<'a>) -> &mut Self {
+        self.sort.to_mut().push(sort);
         self
     }
 
     /// Set all sort criteria at once (replaces existing sorts)
-    pub fn set_sorts(&mut self, sorts: Vec<SortType>) -> &mut Self {
+    pub fn set_sorts(&mut self, sorts: Cow<'a, [SortType<'a>]>) -> &mut Self {
         self.sort = sorts;
         self
     }
 
     /// Clear all sort criteria
     pub fn clear_sorts(&mut self) -> &mut Self {
-        self.sort.clear();
+        self.sort = Cow::Borrowed(&[]);
         self
     }
 
     /// Add an aggregation
-    pub fn add_agg(&mut self, name: String, agg: AggregationType) -> &mut Self {
-        self.aggs.insert(name, agg);
+    pub fn add_agg(&mut self, name: &'a str, agg: AggregationType<'a>) -> &mut Self {
+        self.aggs.insert(Cow::Borrowed(name), agg);
         self
     }
 
     /// Remove an aggregation by name
-    pub fn remove_agg(&mut self, name: &str) -> &mut Self {
-        self.aggs.remove(name);
+    pub fn remove_agg(&mut self, name: &'a str) -> &mut Self {
+        self.aggs.remove(&Cow::Borrowed(name));
         self
     }
 
@@ -242,25 +249,29 @@ impl SearchRequestBuilder {
     }
 
     /// Add a source field to include in the response
-    pub fn add_source_field(&mut self, field: String) -> &mut Self {
-        self._source.push(field);
+    pub fn add_source_field(&mut self, field: &'a str) -> &mut Self {
+        self._source.to_mut().push(Cow::Borrowed(field));
         self
     }
 
     /// Set source fields (replaces existing fields)
-    pub fn set_source_fields(&mut self, fields: Vec<String>) -> &mut Self {
-        self._source = fields;
+    pub fn set_source_fields<I>(&mut self, fields: I) -> &mut Self
+    where
+        I: IntoIterator,
+        I::Item: Into<Cow<'a, str>>,
+    {
+        self._source = fields.into_iter().map(|s| s.into()).collect();
         self
     }
 
     /// Clear all source fields
     pub fn clear_source_fields(&mut self) -> &mut Self {
-        self._source.clear();
+        self._source = Cow::Borrowed(&[]);
         self
     }
 
     /// Set the highlight configuration
-    pub fn highlight(&mut self, highlight: Highlight) -> &mut Self {
+    pub fn highlight(&mut self, highlight: Highlight<'a>) -> &mut Self {
         self.highlight = Some(highlight);
         self
     }
@@ -272,13 +283,13 @@ impl SearchRequestBuilder {
     }
 
     /// Set the collapse configuration
-    pub fn collapse(&mut self, collapse: Collapse) -> &mut Self {
+    pub fn collapse(&mut self, collapse: Collapse<'a>) -> &mut Self {
         self.collapse = Some(collapse);
         self
     }
 
     /// Build the final SearchRequest
-    pub fn build(self) -> SearchRequest {
+    pub fn build(self) -> SearchRequest<'a> {
         SearchRequest {
             query: self.query,
             size: self.size,

@@ -1,15 +1,19 @@
-use serde::{Deserialize, Serialize};
+use std::borrow::Cow;
+
+use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::{QueryType, ToOpenSearchJson};
 
 /// Match Phrase Prefix Query
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct MatchPhrasePrefixQuery {
+#[derive(Debug, Clone, Serialize)]
+pub struct MatchPhrasePrefixQuery<'a> {
     /// The field to search
-    pub field: String,
+    #[serde(borrow)]
+    pub field: Cow<'a, str>,
     /// The query string
-    pub query: String,
+    #[serde(borrow)]
+    pub query: Cow<'a, str>,
     /// The maximum number of terms that can be expanded upon
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_expansions: Option<u32>,
@@ -21,12 +25,12 @@ pub struct MatchPhrasePrefixQuery {
     pub boost: Option<f64>,
 }
 
-impl MatchPhrasePrefixQuery {
+impl<'a> MatchPhrasePrefixQuery<'a> {
     /// Create a new MatchPhrasePrefixQuery with a given field and query string
-    pub fn new(field: &str, query: &str) -> Self {
+    pub fn new(field: &'a str, query: &'a str) -> Self {
         Self {
-            field: field.to_string(),
-            query: query.to_string(),
+            field: Cow::Borrowed(field),
+            query: Cow::Borrowed(query),
             max_expansions: None,
             slop: None,
             boost: None,
@@ -52,20 +56,20 @@ impl MatchPhrasePrefixQuery {
     }
 }
 
-impl From<MatchPhrasePrefixQuery> for QueryType {
-    fn from(match_phrase_prefix_query: MatchPhrasePrefixQuery) -> Self {
+impl<'a> From<MatchPhrasePrefixQuery<'a>> for QueryType<'a> {
+    fn from(match_phrase_prefix_query: MatchPhrasePrefixQuery<'a>) -> Self {
         QueryType::MatchPhrasePrefix(match_phrase_prefix_query)
     }
 }
 
-impl ToOpenSearchJson for MatchPhrasePrefixQuery {
+impl<'a> ToOpenSearchJson for MatchPhrasePrefixQuery<'a> {
     fn to_json(&self) -> Value {
         let mut result = Map::new();
         let mut match_phrase_prefix_obj = Map::new();
         let mut field_obj = Map::new();
 
         // Match phrase prefix always uses the complex form with "query" field
-        field_obj.insert("query".to_string(), Value::String(self.query.clone()));
+        field_obj.insert("query".to_string(), Value::String(self.query.to_string()));
 
         if let Some(max_expansions) = self.max_expansions {
             field_obj.insert(
@@ -80,7 +84,7 @@ impl ToOpenSearchJson for MatchPhrasePrefixQuery {
             field_obj.insert("boost".to_string(), boost.into());
         }
 
-        match_phrase_prefix_obj.insert(self.field.clone(), Value::Object(field_obj));
+        match_phrase_prefix_obj.insert(self.field.to_string(), Value::Object(field_obj));
 
         result.insert(
             "match_phrase_prefix".to_string(),

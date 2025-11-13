@@ -1,23 +1,25 @@
-use serde::{Deserialize, Serialize};
+use crate::util::is_empty_slice;
+use serde::Serialize;
 use serde_json::{Map, Value};
+use std::borrow::Cow;
 
 use crate::{QueryType, ToOpenSearchJson};
 
 /// Bool Query
-#[derive(Default, Debug, Clone, Serialize, Deserialize)]
-pub struct BoolQuery {
+#[derive(Default, Debug, Clone, Serialize)]
+pub struct BoolQuery<'a> {
     /// Must queries
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub must: Vec<QueryType>,
+    #[serde(skip_serializing_if = "is_empty_slice", default, borrow)]
+    pub must: Cow<'a, [QueryType<'a>]>,
     /// Must not queries
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub must_not: Vec<QueryType>,
+    #[serde(skip_serializing_if = "is_empty_slice", default, borrow)]
+    pub must_not: Cow<'a, [QueryType<'a>]>,
     /// Should queries
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub should: Vec<QueryType>,
+    #[serde(skip_serializing_if = "is_empty_slice", default, borrow)]
+    pub should: Cow<'a, [QueryType<'a>]>,
     /// Filter queries
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub filter: Vec<QueryType>,
+    #[serde(skip_serializing_if = "is_empty_slice", default, borrow)]
+    pub filter: Cow<'a, [QueryType<'a>]>,
     /// Minimum should match
     #[serde(skip_serializing_if = "Option::is_none")]
     pub minimum_should_match: Option<i32>,
@@ -26,33 +28,33 @@ pub struct BoolQuery {
     pub boost: Option<f64>,
 }
 
-impl BoolQuery {
+impl<'a> BoolQuery<'a> {
     /// Create a new empty BoolQuery
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Add a must query
-    pub fn must(mut self, query: QueryType) -> Self {
-        self.must.push(query);
+    pub fn must(mut self, query: QueryType<'a>) -> Self {
+        self.must.to_mut().push(query);
         self
     }
 
     /// Add a must not query
-    pub fn must_not(mut self, query: QueryType) -> Self {
-        self.must_not.push(query);
+    pub fn must_not(mut self, query: QueryType<'a>) -> Self {
+        self.must_not.to_mut().push(query);
         self
     }
 
     /// Add a should query
-    pub fn should(mut self, query: QueryType) -> Self {
-        self.should.push(query);
+    pub fn should(mut self, query: QueryType<'a>) -> Self {
+        self.should.to_mut().push(query);
         self
     }
 
     /// Add a filter query
-    pub fn filter(mut self, query: QueryType) -> Self {
-        self.filter.push(query);
+    pub fn filter(mut self, query: QueryType<'a>) -> Self {
+        self.filter.to_mut().push(query);
         self
     }
 
@@ -69,13 +71,13 @@ impl BoolQuery {
     }
 }
 
-impl From<BoolQuery> for QueryType {
-    fn from(bool_query: BoolQuery) -> Self {
+impl<'a> From<BoolQuery<'a>> for QueryType<'a> {
+    fn from(bool_query: BoolQuery<'a>) -> Self {
         QueryType::Bool(bool_query)
     }
 }
 
-impl ToOpenSearchJson for BoolQuery {
+impl<'a> ToOpenSearchJson for BoolQuery<'a> {
     fn to_json(&self) -> Value {
         let mut bool_obj = Map::new();
 
@@ -118,42 +120,42 @@ impl ToOpenSearchJson for BoolQuery {
 
 /// Builder pattern for BoolQuery that allows dynamic updates.
 #[derive(Default, Debug, Clone)]
-pub struct BoolQueryBuilder {
-    must: Vec<QueryType>,
-    must_not: Vec<QueryType>,
-    should: Vec<QueryType>,
-    filter: Vec<QueryType>,
+pub struct BoolQueryBuilder<'a> {
+    must: Cow<'a, [QueryType<'a>]>,
+    must_not: Cow<'a, [QueryType<'a>]>,
+    should: Cow<'a, [QueryType<'a>]>,
+    filter: Cow<'a, [QueryType<'a>]>,
     minimum_should_match: Option<i32>,
     boost: Option<f64>,
 }
 
-impl BoolQueryBuilder {
+impl<'a> BoolQueryBuilder<'a> {
     /// Create a new empty BoolQueryBuilder
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Add a must query
-    pub fn must(&mut self, query: QueryType) -> &mut Self {
-        self.must.push(query);
+    pub fn must(&mut self, query: QueryType<'a>) -> &mut Self {
+        self.must.to_mut().push(query);
         self
     }
 
     /// Add a must not query
-    pub fn must_not(&mut self, query: QueryType) -> &mut Self {
-        self.must_not.push(query);
+    pub fn must_not(&mut self, query: QueryType<'a>) -> &mut Self {
+        self.must_not.to_mut().push(query);
         self
     }
 
     /// Add a should query
-    pub fn should(&mut self, query: QueryType) -> &mut Self {
-        self.should.push(query);
+    pub fn should(&mut self, query: QueryType<'a>) -> &mut Self {
+        self.should.to_mut().push(query);
         self
     }
 
     /// Add a filter query
-    pub fn filter(&mut self, query: QueryType) -> &mut Self {
-        self.filter.push(query);
+    pub fn filter(&mut self, query: QueryType<'a>) -> &mut Self {
+        self.filter.to_mut().push(query);
         self
     }
 
@@ -170,7 +172,7 @@ impl BoolQueryBuilder {
     }
 
     /// Build the final BoolQuery
-    pub fn build(self) -> BoolQuery {
+    pub fn build(self) -> BoolQuery<'a> {
         BoolQuery {
             must: self.must,
             must_not: self.must_not,

@@ -1,32 +1,37 @@
-use serde::{Deserialize, Serialize};
+use std::borrow::Cow;
+
+use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::{QueryType, ToOpenSearchJson};
 
 /// Match Phrase Query
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct MatchPhraseQuery {
+#[derive(Debug, Clone, Serialize)]
+pub struct MatchPhraseQuery<'a> {
     /// The field to search
-    pub field: String,
+    #[serde(borrow)]
+    pub field: Cow<'a, str>,
     /// The query string
-    pub query: String,
+    #[serde(borrow)]
+    pub query: Cow<'a, str>,
     /// The slop value
     #[serde(skip_serializing_if = "Option::is_none")]
     pub slop: Option<u32>,
     /// The analyzer to use
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub analyzer: Option<String>,
+    #[serde(borrow)]
+    pub analyzer: Option<Cow<'a, str>>,
     /// The boost value
     #[serde(skip_serializing_if = "Option::is_none")]
     pub boost: Option<f64>,
 }
 
-impl MatchPhraseQuery {
+impl<'a> MatchPhraseQuery<'a> {
     /// Create a new MatchPhraseQuery with a given field and query string
-    pub fn new(field: &str, query: &str) -> Self {
+    pub fn new(field: &'a str, query: &'a str) -> Self {
         Self {
-            field: field.to_string(),
-            query: query.to_string(),
+            field: Cow::Borrowed(field),
+            query: Cow::Borrowed(query),
             analyzer: None,
             slop: None,
             boost: None,
@@ -40,8 +45,8 @@ impl MatchPhraseQuery {
     }
 
     /// Set the analyzer to use
-    pub fn analyzer(mut self, analyzer: &str) -> Self {
-        self.analyzer = Some(analyzer.to_string());
+    pub fn analyzer(mut self, analyzer: &'a str) -> Self {
+        self.analyzer = Some(Cow::Borrowed(analyzer));
         self
     }
 
@@ -52,13 +57,13 @@ impl MatchPhraseQuery {
     }
 }
 
-impl From<MatchPhraseQuery> for QueryType {
-    fn from(match_phrase_query: MatchPhraseQuery) -> Self {
+impl<'a> From<MatchPhraseQuery<'a>> for QueryType<'a> {
+    fn from(match_phrase_query: MatchPhraseQuery<'a>) -> Self {
         QueryType::MatchPhrase(match_phrase_query)
     }
 }
 
-impl ToOpenSearchJson for MatchPhraseQuery {
+impl<'a> ToOpenSearchJson for MatchPhraseQuery<'a> {
     fn to_json(&self) -> Value {
         let mut result = Map::new();
         let mut match_phrase_obj = Map::new();
@@ -69,10 +74,10 @@ impl ToOpenSearchJson for MatchPhraseQuery {
         if has_options {
             // Complex form with options
             let mut field_obj = Map::new();
-            field_obj.insert("query".to_string(), Value::String(self.query.clone()));
+            field_obj.insert("query".to_string(), Value::String(self.query.to_string()));
 
             if let Some(analyzer) = self.analyzer.as_ref() {
-                field_obj.insert("analyzer".to_string(), Value::String(analyzer.clone()));
+                field_obj.insert("analyzer".to_string(), Value::String(analyzer.to_string()));
             }
             if let Some(slop) = self.slop {
                 field_obj.insert("slop".to_string(), Value::Number(slop.into()));
@@ -81,10 +86,13 @@ impl ToOpenSearchJson for MatchPhraseQuery {
                 field_obj.insert("boost".to_string(), boost.into());
             }
 
-            match_phrase_obj.insert(self.field.clone(), Value::Object(field_obj));
+            match_phrase_obj.insert(self.field.to_string(), Value::Object(field_obj));
         } else {
             // Simple form: just field: "query"
-            match_phrase_obj.insert(self.field.clone(), Value::String(self.query.clone()));
+            match_phrase_obj.insert(
+                self.field.to_string(),
+                Value::String(self.query.to_string()),
+            );
         }
 
         result.insert("match_phrase".to_string(), Value::Object(match_phrase_obj));

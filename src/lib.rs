@@ -9,6 +9,7 @@ pub trait ToOpenSearchJson {
 
 mod query;
 mod request;
+mod util;
 
 pub use query::*;
 pub use request::*;

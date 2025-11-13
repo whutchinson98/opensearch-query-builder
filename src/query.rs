@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 mod bool;
 mod function_score;
@@ -26,32 +26,32 @@ pub use wildcard::*;
 use crate::ToOpenSearchJson;
 
 /// Enum representing the different types of queries that can be used in a search request.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type", content = "params")]
-pub enum QueryType {
+pub enum QueryType<'a> {
     /// Bool query
-    Bool(BoolQuery),
+    Bool(BoolQuery<'a>),
     /// Function score query
-    FunctionScore(FunctionScoreQuery),
+    FunctionScore(FunctionScoreQuery<'a>),
     /// Match phrase query
-    MatchPhrase(MatchPhraseQuery),
+    MatchPhrase(MatchPhraseQuery<'a>),
     /// Match phrase prefix query
-    MatchPhrasePrefix(MatchPhrasePrefixQuery),
+    MatchPhrasePrefix(MatchPhrasePrefixQuery<'a>),
     /// Match query
-    Match(MatchQuery),
+    Match(MatchQuery<'a>),
     /// Range query
-    Range(RangeQuery),
+    Range(RangeQuery<'a>),
     /// Regexp query
-    Regexp(RegexpQuery),
+    Regexp(RegexpQuery<'a>),
     /// Term query
-    Term(TermQuery),
+    Term(TermQuery<'a>),
     /// Terms query
-    Terms(TermsQuery),
+    Terms(TermsQuery<'a>),
     /// Wildcard query
-    WildCard(WildcardQuery),
+    WildCard(WildcardQuery<'a>),
 }
 
-impl ToOpenSearchJson for QueryType {
+impl<'a> ToOpenSearchJson for QueryType<'a> {
     fn to_json(&self) -> Value {
         match self {
             QueryType::Bool(bool_query) => bool_query.to_json(),
@@ -68,49 +68,49 @@ impl ToOpenSearchJson for QueryType {
     }
 }
 
-impl QueryType {
+impl<'a> QueryType<'a> {
     /// Convenience method for creating a term query
-    pub fn term<T: Into<Value>>(field: &str, value: T) -> Self {
+    pub fn term<T: Into<Value>>(field: &'a str, value: T) -> Self {
         QueryType::Term(TermQuery::new(field, value))
     }
 
     /// Convenience method for creating a terms query
-    pub fn terms<T: Into<Value>>(field: &str, values: Vec<T>) -> Self {
+    pub fn terms<T: Into<Value>>(field: &'a str, values: impl IntoIterator<Item = T>) -> Self {
         QueryType::Terms(TermsQuery::new(field, values))
     }
 
     /// Convenience method for creating a wildcard query
-    pub fn wildcard(field: &str, value: &str, case_insensitive: bool) -> Self {
+    pub fn wildcard(field: &'a str, value: &'a str, case_insensitive: bool) -> Self {
         QueryType::WildCard(WildcardQuery::new(field, value, case_insensitive))
     }
 
     /// Convenience method for creating a regexp query
-    pub fn regexp(field: &str, value: &str) -> Self {
+    pub fn regexp(field: &'a str, value: &'a str) -> Self {
         QueryType::Regexp(RegexpQuery::new(field, value))
     }
 
     /// Convenience method for creating a match query
-    pub fn match_phrase(field: &str, query: &str) -> Self {
+    pub fn match_phrase(field: &'a str, query: &'a str) -> Self {
         QueryType::MatchPhrase(MatchPhraseQuery::new(field, query))
     }
 
     /// Convenience method for creating a match phrase prefix query
-    pub fn match_phrase_prefix(field: &str, query: &str) -> Self {
+    pub fn match_phrase_prefix(field: &'a str, query: &'a str) -> Self {
         QueryType::MatchPhrasePrefix(MatchPhrasePrefixQuery::new(field, query))
     }
 
     /// Convenience method for starting a bool query
-    pub fn bool_query() -> BoolQueryBuilder {
+    pub fn bool_query() -> BoolQueryBuilder<'a> {
         BoolQueryBuilder::new()
     }
 
     /// Convenience method for starting a match query
-    pub fn range(field: &str) -> RangeQueryBuilder {
+    pub fn range(field: &'a str) -> RangeQueryBuilder<'a> {
         RangeQueryBuilder::new(field)
     }
 
     /// Convenience method for starting a function score query
-    pub fn function_score() -> FunctionScoreQueryBuilder {
+    pub fn function_score() -> FunctionScoreQueryBuilder<'a> {
         FunctionScoreQueryBuilder::new()
     }
 }

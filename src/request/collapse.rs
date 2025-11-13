@@ -1,28 +1,31 @@
-use serde::{Deserialize, Serialize};
+use std::borrow::Cow;
+
+use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::ToOpenSearchJson;
 
 /// Collapse
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Collapse {
+#[derive(Debug, Clone, Serialize)]
+pub struct Collapse<'a> {
     /// The field to collapse on
-    pub field: String,
+    #[serde(borrow)]
+    pub field: Cow<'a, str>,
 }
 
-impl Collapse {
+impl<'a> Collapse<'a> {
     /// Create a new Collapse
-    pub fn new(field: &str) -> Self {
+    pub fn new(field: &'a str) -> Self {
         Self {
-            field: field.to_string(),
+            field: Cow::Borrowed(field),
         }
     }
 }
 
-impl ToOpenSearchJson for Collapse {
+impl<'a> ToOpenSearchJson for Collapse<'a> {
     fn to_json(&self) -> Value {
         let mut result = Map::new();
-        result.insert("field".to_string(), Value::String(self.field.clone()));
+        result.insert("field".to_string(), Value::String(self.field.to_string()));
         Value::Object(result)
     }
 }

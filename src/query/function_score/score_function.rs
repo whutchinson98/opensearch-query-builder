@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::{
@@ -6,40 +6,40 @@ use crate::{
 };
 
 /// Enum representing different scoring functions
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 #[serde(untagged)]
-pub enum ScoreFunctionType {
+pub enum ScoreFunctionType<'a> {
     /// Gauss decay function
-    Gauss(DecayFunction),
+    Gauss(DecayFunction<'a>),
     /// Exp decay function
-    Exp(DecayFunction),
+    Exp(DecayFunction<'a>),
     /// Linear decay function
-    Linear(DecayFunction),
+    Linear(DecayFunction<'a>),
     /// Field value factor function
-    FieldValueFactor(FieldValueFactor),
+    FieldValueFactor(FieldValueFactor<'a>),
     /// Random score function
-    RandomScore(RandomScore),
+    RandomScore(RandomScore<'a>),
     /// Script score function
-    ScriptScore(ScriptScore),
+    ScriptScore(ScriptScore<'a>),
     /// Weight function
     Weight(f64),
 }
 
 /// A single scoring function with optional filter and weight
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ScoreFunction {
+#[derive(Debug, Clone, Serialize)]
+pub struct ScoreFunction<'a> {
     /// The scoring function
     #[serde(flatten)]
-    pub function: ScoreFunctionType,
+    pub function: ScoreFunctionType<'a>,
     /// The filter to apply to the function
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub filter: Option<Box<QueryType>>,
+    pub filter: Option<Box<QueryType<'a>>>,
     /// The weight to apply to the function
     #[serde(skip_serializing_if = "Option::is_none")]
     pub weight: Option<f64>,
 }
 
-impl ToOpenSearchJson for ScoreFunction {
+impl<'a> ToOpenSearchJson for ScoreFunction<'a> {
     fn to_json(&self) -> Value {
         let mut result = Map::new();
 
@@ -52,15 +52,15 @@ impl ToOpenSearchJson for ScoreFunction {
                 if let Some(ref origin) = decay.origin {
                     field_obj.insert("origin".to_string(), origin.clone());
                 }
-                field_obj.insert("scale".to_string(), Value::String(decay.scale.clone()));
+                field_obj.insert("scale".to_string(), Value::String(decay.scale.to_string()));
                 if let Some(ref offset) = decay.offset {
-                    field_obj.insert("offset".to_string(), Value::String(offset.clone()));
+                    field_obj.insert("offset".to_string(), Value::String(offset.to_string()));
                 }
                 if let Some(decay_val) = decay.decay {
                     field_obj.insert("decay".to_string(), decay_val.into());
                 }
 
-                decay_obj.insert(decay.field.clone(), Value::Object(field_obj));
+                decay_obj.insert(decay.field.to_string(), Value::Object(field_obj));
                 result.insert("gauss".to_string(), Value::Object(decay_obj));
             }
             ScoreFunctionType::Exp(decay) => {
@@ -70,15 +70,15 @@ impl ToOpenSearchJson for ScoreFunction {
                 if let Some(ref origin) = decay.origin {
                     field_obj.insert("origin".to_string(), origin.clone());
                 }
-                field_obj.insert("scale".to_string(), Value::String(decay.scale.clone()));
+                field_obj.insert("scale".to_string(), Value::String(decay.scale.to_string()));
                 if let Some(ref offset) = decay.offset {
-                    field_obj.insert("offset".to_string(), Value::String(offset.clone()));
+                    field_obj.insert("offset".to_string(), Value::String(offset.to_string()));
                 }
                 if let Some(decay_val) = decay.decay {
                     field_obj.insert("decay".to_string(), decay_val.into());
                 }
 
-                decay_obj.insert(decay.field.clone(), Value::Object(field_obj));
+                decay_obj.insert(decay.field.to_string(), Value::Object(field_obj));
                 result.insert("exp".to_string(), Value::Object(decay_obj));
             }
             ScoreFunctionType::Linear(decay) => {
@@ -88,25 +88,25 @@ impl ToOpenSearchJson for ScoreFunction {
                 if let Some(ref origin) = decay.origin {
                     field_obj.insert("origin".to_string(), origin.clone());
                 }
-                field_obj.insert("scale".to_string(), Value::String(decay.scale.clone()));
+                field_obj.insert("scale".to_string(), Value::String(decay.scale.to_string()));
                 if let Some(ref offset) = decay.offset {
-                    field_obj.insert("offset".to_string(), Value::String(offset.clone()));
+                    field_obj.insert("offset".to_string(), Value::String(offset.to_string()));
                 }
                 if let Some(decay_val) = decay.decay {
                     field_obj.insert("decay".to_string(), decay_val.into());
                 }
 
-                decay_obj.insert(decay.field.clone(), Value::Object(field_obj));
+                decay_obj.insert(decay.field.to_string(), Value::Object(field_obj));
                 result.insert("linear".to_string(), Value::Object(decay_obj));
             }
             ScoreFunctionType::FieldValueFactor(fvf) => {
                 let mut fvf_obj = Map::new();
-                fvf_obj.insert("field".to_string(), Value::String(fvf.field.clone()));
+                fvf_obj.insert("field".to_string(), Value::String(fvf.field.to_string()));
                 if let Some(factor) = fvf.factor {
                     fvf_obj.insert("factor".to_string(), factor.into());
                 }
                 if let Some(ref modifier) = fvf.modifier {
-                    fvf_obj.insert("modifier".to_string(), Value::String(modifier.clone()));
+                    fvf_obj.insert("modifier".to_string(), Value::String(modifier.to_string()));
                 }
                 if let Some(missing) = fvf.missing {
                     fvf_obj.insert("missing".to_string(), missing.into());
@@ -119,13 +119,13 @@ impl ToOpenSearchJson for ScoreFunction {
                     rs_obj.insert("seed".to_string(), seed.clone());
                 }
                 if let Some(ref field) = rs.field {
-                    rs_obj.insert("field".to_string(), Value::String(field.clone()));
+                    rs_obj.insert("field".to_string(), Value::String(field.to_string()));
                 }
                 result.insert("random_score".to_string(), Value::Object(rs_obj));
             }
             ScoreFunctionType::ScriptScore(ss) => {
                 let mut script_obj = Map::new();
-                script_obj.insert("source".to_string(), Value::String(ss.source.clone()));
+                script_obj.insert("source".to_string(), Value::String(ss.source.to_string()));
                 if let Some(ref params) = ss.params {
                     script_obj.insert("params".to_string(), Value::Object(params.clone()));
                 }

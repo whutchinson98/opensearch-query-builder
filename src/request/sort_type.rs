@@ -1,10 +1,12 @@
-use serde::{Deserialize, Serialize};
+use std::borrow::Cow;
+
+use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::ToOpenSearchJson;
 
 /// Sort Order
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum SortOrder {
     /// Ascending
@@ -14,37 +16,39 @@ pub enum SortOrder {
 }
 
 /// Field Sort
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct FieldSort {
+#[derive(Debug, Clone, Serialize)]
+pub struct FieldSort<'a> {
     /// The field to sort on
-    pub field: String,
+    #[serde(borrow)]
+    pub field: Cow<'a, str>,
     /// Sort order
     pub order: SortOrder,
     /// Missing value
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub missing: Option<String>,
+    #[serde(borrow)]
+    pub missing: Option<Cow<'a, str>>,
 }
 
 /// Score sort with order
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct ScoreWithOrderSort {
     /// Sort order
     pub order: SortOrder,
 }
 
-impl FieldSort {
+impl<'a> FieldSort<'a> {
     /// Create a new FieldSort
-    pub fn new(field: &str, order: SortOrder) -> Self {
+    pub fn new(field: &'a str, order: SortOrder) -> Self {
         Self {
-            field: field.to_string(),
+            field: Cow::Borrowed(field),
             order,
             missing: None,
         }
     }
 
     /// Set the missing value
-    pub fn missing(mut self, missing: &str) -> Self {
-        self.missing = Some(missing.to_string());
+    pub fn missing(mut self, missing: &'a str) -> Self {
+        self.missing = Some(Cow::Borrowed(missing));
         self
     }
 }
@@ -56,14 +60,14 @@ impl ScoreWithOrderSort {
     }
 }
 
-impl ToOpenSearchJson for FieldSort {
+impl<'a> ToOpenSearchJson for FieldSort<'a> {
     fn to_json(&self) -> Value {
         let mut result = Map::new();
 
         // Use simplified format when there are no additional parameters
         if self.missing.is_none() {
             result.insert(
-                self.field.clone(),
+                self.field.to_string(),
                 Value::String(match self.order {
                     SortOrder::Asc => "asc".to_string(),
                     SortOrder::Desc => "desc".to_string(),
@@ -81,10 +85,10 @@ impl ToOpenSearchJson for FieldSort {
             );
 
             if let Some(ref missing) = self.missing {
-                field_obj.insert("missing".to_string(), Value::String(missing.clone()));
+                field_obj.insert("missing".to_string(), Value::String(missing.to_string()));
             }
 
-            result.insert(self.field.clone(), Value::Object(field_obj));
+            result.insert(self.field.to_string(), Value::Object(field_obj));
         }
 
         Value::Object(result)
@@ -106,17 +110,17 @@ impl ToOpenSearchJson for ScoreWithOrderSort {
 }
 
 /// Sort Type
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type", content = "params")]
-pub enum SortType {
+pub enum SortType<'a> {
     /// Field sort
-    Field(FieldSort),
+    Field(FieldSort<'a>),
     /// Score sort
     Score,
     /// Score with sort order
     ScoreWithOrder(ScoreWithOrderSort),
 }
-impl ToOpenSearchJson for SortType {
+impl<'a> ToOpenSearchJson for SortType<'a> {
     fn to_json(&self) -> Value {
         match self {
             SortType::Field(field_sort) => field_sort.to_json(),

@@ -1,4 +1,6 @@
-use serde::{Deserialize, Serialize};
+use std::borrow::Cow;
+
+use serde::Serialize;
 
 mod boost_mode;
 mod decay_function;
@@ -17,17 +19,18 @@ pub use score_mode::*;
 pub use script_score::*;
 use serde_json::{Map, Value};
 
+use crate::util::is_empty_slice;
 use crate::{QueryType, ToOpenSearchJson};
 
 /// Function Score Query
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct FunctionScoreQuery {
+#[derive(Debug, Clone, Serialize, Default)]
+pub struct FunctionScoreQuery<'a> {
     /// The query to use for scoring
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub query: Option<Box<QueryType>>,
+    pub query: Option<Box<QueryType<'a>>>,
     /// The scoring functions to use
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub functions: Vec<ScoreFunction>,
+    #[serde(skip_serializing_if = "is_empty_slice", default, borrow)]
+    pub functions: Cow<'a, [ScoreFunction<'a>]>,
     /// The score mode to use
     #[serde(skip_serializing_if = "Option::is_none")]
     pub score_mode: Option<ScoreMode>,
@@ -45,21 +48,21 @@ pub struct FunctionScoreQuery {
     pub min_score: Option<f64>,
 }
 
-impl FunctionScoreQuery {
+impl<'a> FunctionScoreQuery<'a> {
     /// Create a new empty FunctionScoreQuery
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Set the query for this query
-    pub fn query(mut self, query: QueryType) -> Self {
+    pub fn query(mut self, query: QueryType<'a>) -> Self {
         self.query = Some(Box::new(query));
         self
     }
 
     /// Add a scoring function
-    pub fn function(mut self, function: ScoreFunction) -> Self {
-        self.functions.push(function);
+    pub fn function(mut self, function: ScoreFunction<'a>) -> Self {
+        self.functions.to_mut().push(function);
         self
     }
 
@@ -94,13 +97,13 @@ impl FunctionScoreQuery {
     }
 }
 
-impl From<FunctionScoreQuery> for QueryType {
-    fn from(function_score_query: FunctionScoreQuery) -> Self {
+impl<'a> From<FunctionScoreQuery<'a>> for QueryType<'a> {
+    fn from(function_score_query: FunctionScoreQuery<'a>) -> Self {
         QueryType::FunctionScore(function_score_query)
     }
 }
 
-impl ToOpenSearchJson for FunctionScoreQuery {
+impl<'a> ToOpenSearchJson for FunctionScoreQuery<'a> {
     fn to_json(&self) -> Value {
         let mut function_score_obj = Map::new();
 
@@ -171,11 +174,11 @@ impl ToOpenSearchJson for FunctionScoreQuery {
 
 /// Builder pattern for FunctionScoreQuery that allows dynamic updates.
 #[derive(Default)]
-pub struct FunctionScoreQueryBuilder {
+pub struct FunctionScoreQueryBuilder<'a> {
     /// The query to use for scoring
-    pub query: Option<Box<QueryType>>,
+    pub query: Option<Box<QueryType<'a>>>,
     /// The scoring functions to use
-    pub functions: Vec<ScoreFunction>,
+    pub functions: Cow<'a, [ScoreFunction<'a>]>,
     /// The score mode to use
     pub score_mode: Option<ScoreMode>,
     /// The boost mode to use
@@ -188,21 +191,21 @@ pub struct FunctionScoreQueryBuilder {
     pub min_score: Option<f64>,
 }
 
-impl FunctionScoreQueryBuilder {
+impl<'a> FunctionScoreQueryBuilder<'a> {
     /// Create a new empty FunctionScoreQueryBuilder
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Set the query for this query (replaces existing query)
-    pub fn query(&mut self, query: QueryType) -> &mut Self {
+    pub fn query(&mut self, query: QueryType<'a>) -> &mut Self {
         self.query = Some(Box::new(query));
         self
     }
 
     /// Add a scoring function (can be called multiple times)
-    pub fn function(&mut self, function: ScoreFunction) -> &mut Self {
-        self.functions.push(function);
+    pub fn function(&mut self, function: ScoreFunction<'a>) -> &mut Self {
+        self.functions.to_mut().push(function);
         self
     }
 
@@ -237,7 +240,7 @@ impl FunctionScoreQueryBuilder {
     }
 
     /// Build the final FunctionScoreQuery
-    pub fn build(self) -> FunctionScoreQuery {
+    pub fn build(self) -> FunctionScoreQuery<'a> {
         FunctionScoreQuery {
             query: self.query,
             functions: self.functions,
