@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::ToOpenSearchJson;
 
 /// Highlight
-#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Serialize)]
 pub struct Highlight {
     /// Fields to highlight
     #[serde(skip_serializing_if = "HashMap::is_empty", default)]
@@ -59,7 +59,7 @@ impl ToOpenSearchJson for Highlight {
 }
 
 /// HighlightField
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct HighlightField {
     /// Highlight type
     #[serde(skip_serializing_if = "Option::is_none", rename = "type")]

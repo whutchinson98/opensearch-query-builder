@@ -1,13 +1,16 @@
-use serde::{Deserialize, Serialize};
+use std::borrow::Cow;
+
+use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::{QueryType, ToOpenSearchJson};
 
 /// Term Query
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TermQuery {
+#[derive(Debug, Clone, Serialize)]
+pub struct TermQuery<'a> {
     /// The field to search
-    pub field: String,
+    #[serde(borrow)]
+    pub field: Cow<'a, str>,
     /// The value to search for
     pub value: Value,
     /// The boost value
@@ -15,11 +18,11 @@ pub struct TermQuery {
     pub boost: Option<f64>,
 }
 
-impl TermQuery {
+impl<'a> TermQuery<'a> {
     /// Create a new TermQuery with a given field and value
-    pub fn new<T: Into<Value>>(field: &str, value: T) -> Self {
+    pub fn new<T: Into<Value>>(field: &'a str, value: T) -> Self {
         Self {
-            field: field.to_string(),
+            field: Cow::Borrowed(field),
             value: value.into(),
             boost: None,
         }
@@ -32,13 +35,13 @@ impl TermQuery {
     }
 }
 
-impl From<TermQuery> for QueryType {
-    fn from(term_query: TermQuery) -> Self {
+impl<'a> From<TermQuery<'a>> for QueryType<'a> {
+    fn from(term_query: TermQuery<'a>) -> Self {
         QueryType::Term(term_query)
     }
 }
 
-impl ToOpenSearchJson for TermQuery {
+impl<'a> ToOpenSearchJson for TermQuery<'a> {
     fn to_json(&self) -> Value {
         let mut result = Map::new();
         let mut term_obj = Map::new();
@@ -50,10 +53,10 @@ impl ToOpenSearchJson for TermQuery {
             if let Some(boost) = self.boost {
                 field_obj.insert("boost".to_string(), boost.into());
             }
-            term_obj.insert(self.field.clone(), Value::Object(field_obj));
+            term_obj.insert(self.field.to_string(), Value::Object(field_obj));
         } else {
             // Simple form: just field: value
-            term_obj.insert(self.field.clone(), self.value.clone());
+            term_obj.insert(self.field.to_string(), self.value.clone());
         }
 
         result.insert("term".to_string(), Value::Object(term_obj));

@@ -1,13 +1,16 @@
-use serde::{Deserialize, Serialize};
+use std::borrow::Cow;
+
+use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::{QueryType, ToOpenSearchJson};
 
 /// Range Query
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RangeQuery {
+#[derive(Debug, Clone, Serialize)]
+pub struct RangeQuery<'a> {
     /// The field to search
-    pub field: String,
+    #[serde(borrow)]
+    pub field: Cow<'a, str>,
     /// Greater than or equal to
     #[serde(skip_serializing_if = "Option::is_none")]
     pub gte: Option<Value>,
@@ -25,11 +28,11 @@ pub struct RangeQuery {
     pub boost: Option<f64>,
 }
 
-impl RangeQuery {
+impl<'a> RangeQuery<'a> {
     /// Create a new RangeQuery with a given field
-    pub fn new(field: &str) -> Self {
+    pub fn new(field: &'a str) -> Self {
         Self {
-            field: field.to_string(),
+            field: Cow::Borrowed(field),
             gte: None,
             gt: None,
             lte: None,
@@ -66,13 +69,13 @@ impl RangeQuery {
     }
 }
 
-impl From<RangeQuery> for QueryType {
-    fn from(range_query: RangeQuery) -> Self {
+impl<'a> From<RangeQuery<'a>> for QueryType<'a> {
+    fn from(range_query: RangeQuery<'a>) -> Self {
         QueryType::Range(range_query)
     }
 }
 
-impl ToOpenSearchJson for RangeQuery {
+impl<'a> ToOpenSearchJson for RangeQuery<'a> {
     fn to_json(&self) -> Value {
         let mut range_obj = Map::new();
         let mut field_obj = Map::new();
@@ -93,7 +96,7 @@ impl ToOpenSearchJson for RangeQuery {
             field_obj.insert("boost".to_string(), boost.into());
         }
 
-        range_obj.insert(self.field.clone(), Value::Object(field_obj));
+        range_obj.insert(self.field.to_string(), Value::Object(field_obj));
 
         let mut result = Map::new();
         result.insert("range".to_string(), Value::Object(range_obj));
@@ -102,9 +105,10 @@ impl ToOpenSearchJson for RangeQuery {
 }
 
 /// Builder pattern for RangeQuery that allows dynamic updates.
-pub struct RangeQueryBuilder {
+pub struct RangeQueryBuilder<'a> {
     /// The field to search
-    pub field: String,
+    #[allow(dead_code)]
+    pub field: Cow<'a, str>,
     /// Greater than or equal to
     pub gte: Option<Value>,
     /// Greater than
@@ -117,11 +121,11 @@ pub struct RangeQueryBuilder {
     pub boost: Option<f64>,
 }
 
-impl RangeQueryBuilder {
+impl<'a> RangeQueryBuilder<'a> {
     /// Create a new empty RangeQueryBuilder
-    pub fn new(field: &str) -> Self {
+    pub fn new(field: &'a str) -> Self {
         Self {
-            field: field.to_string(),
+            field: Cow::Borrowed(field),
             gte: None,
             gt: None,
             lte: None,
@@ -161,7 +165,7 @@ impl RangeQueryBuilder {
     }
 
     /// Build the final RangeQuery
-    pub fn build(self) -> RangeQuery {
+    pub fn build(self) -> RangeQuery<'a> {
         RangeQuery {
             field: self.field,
             gte: self.gte,

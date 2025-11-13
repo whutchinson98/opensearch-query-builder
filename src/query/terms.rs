@@ -1,13 +1,16 @@
-use serde::{Deserialize, Serialize};
+use std::borrow::Cow;
+
+use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::{QueryType, ToOpenSearchJson};
 
 /// Terms Query
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TermsQuery {
+#[derive(Debug, Clone, Serialize)]
+pub struct TermsQuery<'a> {
     /// The field to search
-    pub field: String,
+    #[serde(borrow)]
+    pub field: Cow<'a, str>,
     /// The values to search for
     pub values: Vec<Value>,
     /// The boost value
@@ -15,11 +18,11 @@ pub struct TermsQuery {
     pub boost: Option<f64>,
 }
 
-impl TermsQuery {
+impl<'a> TermsQuery<'a> {
     /// Create a new TermsQuery with a given field and values
-    pub fn new<T: Into<Value>>(field: &str, values: Vec<T>) -> Self {
+    pub fn new<T: Into<Value>>(field: &'a str, values: impl IntoIterator<Item = T>) -> Self {
         Self {
-            field: field.to_string(),
+            field: Cow::Borrowed(field),
             values: values.into_iter().map(|v| v.into()).collect(),
             boost: None,
         }
@@ -32,13 +35,13 @@ impl TermsQuery {
     }
 }
 
-impl From<TermsQuery> for QueryType {
-    fn from(terms_query: TermsQuery) -> Self {
+impl<'a> From<TermsQuery<'a>> for QueryType<'a> {
+    fn from(terms_query: TermsQuery<'a>) -> Self {
         QueryType::Terms(terms_query)
     }
 }
 
-impl ToOpenSearchJson for TermsQuery {
+impl<'a> ToOpenSearchJson for TermsQuery<'a> {
     fn to_json(&self) -> Value {
         let mut result = Map::new();
         let mut terms_obj = Map::new();
@@ -50,10 +53,10 @@ impl ToOpenSearchJson for TermsQuery {
             if let Some(boost) = self.boost {
                 field_obj.insert("boost".to_string(), boost.into());
             }
-            terms_obj.insert(self.field.clone(), Value::Object(field_obj));
+            terms_obj.insert(self.field.to_string(), Value::Object(field_obj));
         } else {
             // Simple form: field: [values]
-            terms_obj.insert(self.field.clone(), Value::Array(self.values.clone()));
+            terms_obj.insert(self.field.to_string(), Value::Array(self.values.clone()));
         }
 
         result.insert("terms".to_string(), Value::Object(terms_obj));

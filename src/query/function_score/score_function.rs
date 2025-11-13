@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::{
@@ -6,7 +6,7 @@ use crate::{
 };
 
 /// Enum representing different scoring functions
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 #[serde(untagged)]
 pub enum ScoreFunctionType {
     /// Gauss decay function
@@ -26,20 +26,20 @@ pub enum ScoreFunctionType {
 }
 
 /// A single scoring function with optional filter and weight
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ScoreFunction {
+#[derive(Debug, Clone, Serialize)]
+pub struct ScoreFunction<'a> {
     /// The scoring function
     #[serde(flatten)]
     pub function: ScoreFunctionType,
     /// The filter to apply to the function
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub filter: Option<Box<QueryType>>,
+    pub filter: Option<Box<QueryType<'a>>>,
     /// The weight to apply to the function
     #[serde(skip_serializing_if = "Option::is_none")]
     pub weight: Option<f64>,
 }
 
-impl ToOpenSearchJson for ScoreFunction {
+impl<'a> ToOpenSearchJson for ScoreFunction<'a> {
     fn to_json(&self) -> Value {
         let mut result = Map::new();
 

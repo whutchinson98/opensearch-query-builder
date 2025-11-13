@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::ToOpenSearchJson;
 
 /// Cardinality Aggregation
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct CardinalityAggregation {
     /// The field to aggregate
     pub field: String,
@@ -32,7 +32,7 @@ impl ToOpenSearchJson for CardinalityAggregation {
 }
 
 /// Terms Aggregation
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct TermsAggregation {
     /// The field to aggregate
     pub field: String,
@@ -92,7 +92,7 @@ impl ToOpenSearchJson for TermsAggregation {
 }
 
 /// Aggregation Type
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type", content = "params")]
 pub enum AggregationType {
     /// Terms aggregation

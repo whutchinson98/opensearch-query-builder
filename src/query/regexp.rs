@@ -1,12 +1,12 @@
-use std::fmt::Display;
+use std::{borrow::Cow, fmt::Display};
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_json::Value;
 
 use crate::{QueryType, ToOpenSearchJson};
 
 /// Enum representing the different flags that can be used with a RegexpQuery
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Default)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum RegexpQueryFlags {
     /// Enables all optional features (default behavior)
@@ -48,22 +48,24 @@ impl Display for RegexpQueryFlags {
 }
 
 /// Regexp Query
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct RegexpQuery {
+#[derive(Debug, Clone, Serialize, Default)]
+pub struct RegexpQuery<'a> {
     /// The field to search in
-    pub field: String,
+    #[serde(borrow)]
+    pub field: Cow<'a, str>,
     /// The stringified regex pattern to match on
-    pub value: String,
+    #[serde(borrow)]
+    pub value: Cow<'a, str>,
     /// The flags to use when matching the regular expression
     pub flags: Option<Vec<RegexpQueryFlags>>,
 }
 
-impl RegexpQuery {
+impl<'a> RegexpQuery<'a> {
     /// Create a new RegexpQuery with a given field and value
-    pub fn new(field: &str, value: &str) -> Self {
+    pub fn new(field: &'a str, value: &'a str) -> Self {
         Self {
-            field: field.to_string(),
-            value: value.to_string(),
+            field: Cow::Borrowed(field),
+            value: Cow::Borrowed(value),
             flags: None,
         }
     }
@@ -75,18 +77,18 @@ impl RegexpQuery {
     }
 }
 
-impl From<RegexpQuery> for QueryType {
-    fn from(regexp_query: RegexpQuery) -> Self {
+impl<'a> From<RegexpQuery<'a>> for QueryType<'a> {
+    fn from(regexp_query: RegexpQuery<'a>) -> Self {
         QueryType::Regexp(regexp_query)
     }
 }
 
-impl ToOpenSearchJson for RegexpQuery {
+impl<'a> ToOpenSearchJson for RegexpQuery<'a> {
     fn to_json(&self) -> Value {
         let mut json = serde_json::json!({
             "regexp": {
-                self.field.clone(): {
-                    "value": self.value,
+                self.field.as_ref(): {
+                    "value": self.value.as_ref(),
                 }
             }
         });
@@ -95,7 +97,7 @@ impl ToOpenSearchJson for RegexpQuery {
             && !flags.is_empty()
         {
             // Join all flags with |
-            json["regexp"][self.field.clone()]["flags"] = Value::String(
+            json["regexp"][self.field.as_ref()]["flags"] = Value::String(
                 flags
                     .iter()
                     .map(ToString::to_string)
