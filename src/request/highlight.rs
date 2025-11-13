@@ -5,6 +5,7 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::ToOpenSearchJson;
+use crate::util::is_empty_slice;
 
 /// Highlight
 #[derive(Default, Debug, Clone, Serialize)]
@@ -70,11 +71,11 @@ pub struct HighlightField<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub number_of_fragments: Option<u32>,
     /// Pre-tags
-    #[serde(skip_serializing_if = "Vec::is_empty", default, borrow)]
-    pub pre_tags: Vec<Cow<'a, str>>,
+    #[serde(skip_serializing_if = "is_empty_slice", default, borrow)]
+    pub pre_tags: Cow<'a, [Cow<'a, str>]>,
     /// Post-tags
-    #[serde(skip_serializing_if = "Vec::is_empty", default, borrow)]
-    pub post_tags: Vec<Cow<'a, str>>,
+    #[serde(skip_serializing_if = "is_empty_slice", default, borrow)]
+    pub post_tags: Cow<'a, [Cow<'a, str>]>,
 }
 
 impl<'a> Default for HighlightField<'a> {
@@ -89,8 +90,8 @@ impl<'a> HighlightField<'a> {
         Self {
             highlight_type: None,
             number_of_fragments: None,
-            pre_tags: Vec::new(),
-            post_tags: Vec::new(),
+            pre_tags: Cow::Borrowed(&[]),
+            post_tags: Cow::Borrowed(&[]),
         }
     }
 

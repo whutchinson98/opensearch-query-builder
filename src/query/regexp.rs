@@ -57,7 +57,8 @@ pub struct RegexpQuery<'a> {
     #[serde(borrow)]
     pub value: Cow<'a, str>,
     /// The flags to use when matching the regular expression
-    pub flags: Option<Vec<RegexpQueryFlags>>,
+    #[serde(borrow)]
+    pub flags: Option<Cow<'a, [RegexpQueryFlags]>>,
 }
 
 impl<'a> RegexpQuery<'a> {
@@ -71,7 +72,7 @@ impl<'a> RegexpQuery<'a> {
     }
 
     /// Set the flags to use when matching the regular expression
-    pub fn flags(mut self, flags: Vec<RegexpQueryFlags>) -> Self {
+    pub fn flags(mut self, flags: Cow<'a, [RegexpQueryFlags]>) -> Self {
         self.flags = Some(flags);
         self
     }

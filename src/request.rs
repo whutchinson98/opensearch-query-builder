@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
+use crate::util::is_empty_slice;
 use crate::{QueryType, ToOpenSearchJson};
 
 mod aggregation_type;
@@ -29,16 +30,15 @@ pub struct SearchRequest<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub from: Option<u32>,
     /// Sort criteria
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub sort: Vec<SortType<'a>>,
+    #[serde(skip_serializing_if = "is_empty_slice", default, borrow)]
+    pub sort: Cow<'a, [SortType<'a>]>,
     /// Aggregations
     #[serde(skip_serializing_if = "HashMap::is_empty", default)]
     #[serde(borrow)]
     pub aggs: HashMap<Cow<'a, str>, AggregationType<'a>>,
     /// Source fields
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    #[serde(borrow)]
-    pub _source: Vec<Cow<'a, str>>,
+    #[serde(skip_serializing_if = "is_empty_slice", default, borrow)]
+    pub _source: Cow<'a, [Cow<'a, str>]>,
     /// Highlight
     #[serde(skip_serializing_if = "Option::is_none")]
     pub highlight: Option<Highlight<'a>>,
@@ -76,7 +76,7 @@ impl<'a> SearchRequest<'a> {
 
     /// Add a sort criterion
     pub fn sort(mut self, sort: SortType<'a>) -> Self {
-        self.sort.push(sort);
+        self.sort.to_mut().push(sort);
         self
     }
 
@@ -180,9 +180,9 @@ pub struct SearchRequestBuilder<'a> {
     query: Option<QueryType<'a>>,
     size: Option<u32>,
     from: Option<u32>,
-    sort: Vec<SortType<'a>>,
+    sort: Cow<'a, [SortType<'a>]>,
     aggs: HashMap<Cow<'a, str>, AggregationType<'a>>,
-    _source: Vec<Cow<'a, str>>,
+    _source: Cow<'a, [Cow<'a, str>]>,
     highlight: Option<Highlight<'a>>,
     track_total_hits: Option<bool>,
     collapse: Option<Collapse<'a>>,
@@ -214,19 +214,19 @@ impl<'a> SearchRequestBuilder<'a> {
 
     /// Add a sort criterion (can be called multiple times)
     pub fn add_sort(&mut self, sort: SortType<'a>) -> &mut Self {
-        self.sort.push(sort);
+        self.sort.to_mut().push(sort);
         self
     }
 
     /// Set all sort criteria at once (replaces existing sorts)
-    pub fn set_sorts(&mut self, sorts: Vec<SortType<'a>>) -> &mut Self {
+    pub fn set_sorts(&mut self, sorts: Cow<'a, [SortType<'a>]>) -> &mut Self {
         self.sort = sorts;
         self
     }
 
     /// Clear all sort criteria
     pub fn clear_sorts(&mut self) -> &mut Self {
-        self.sort.clear();
+        self.sort = Cow::Borrowed(&[]);
         self
     }
 
@@ -250,7 +250,7 @@ impl<'a> SearchRequestBuilder<'a> {
 
     /// Add a source field to include in the response
     pub fn add_source_field(&mut self, field: &'a str) -> &mut Self {
-        self._source.push(Cow::Borrowed(field));
+        self._source.to_mut().push(Cow::Borrowed(field));
         self
     }
 
@@ -266,7 +266,7 @@ impl<'a> SearchRequestBuilder<'a> {
 
     /// Clear all source fields
     pub fn clear_source_fields(&mut self) -> &mut Self {
-        self._source.clear();
+        self._source = Cow::Borrowed(&[]);
         self
     }
 

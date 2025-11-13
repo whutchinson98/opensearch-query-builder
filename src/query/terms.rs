@@ -12,7 +12,8 @@ pub struct TermsQuery<'a> {
     #[serde(borrow)]
     pub field: Cow<'a, str>,
     /// The values to search for
-    pub values: Vec<Value>,
+    #[serde(borrow)]
+    pub values: Cow<'a, [Value]>,
     /// The boost value
     #[serde(skip_serializing_if = "Option::is_none")]
     pub boost: Option<f64>,
@@ -23,7 +24,7 @@ impl<'a> TermsQuery<'a> {
     pub fn new<T: Into<Value>>(field: &'a str, values: impl IntoIterator<Item = T>) -> Self {
         Self {
             field: Cow::Borrowed(field),
-            values: values.into_iter().map(|v| v.into()).collect(),
+            values: Cow::Owned(values.into_iter().map(|v| v.into()).collect()),
             boost: None,
         }
     }
@@ -49,14 +50,14 @@ impl<'a> ToOpenSearchJson for TermsQuery<'a> {
         if self.boost.is_some() {
             // Complex form with boost
             let mut field_obj = Map::new();
-            field_obj.insert("terms".to_string(), Value::Array(self.values.clone()));
+            field_obj.insert("terms".to_string(), Value::Array(self.values.to_vec()));
             if let Some(boost) = self.boost {
                 field_obj.insert("boost".to_string(), boost.into());
             }
             terms_obj.insert(self.field.to_string(), Value::Object(field_obj));
         } else {
             // Simple form: field: [values]
-            terms_obj.insert(self.field.to_string(), Value::Array(self.values.clone()));
+            terms_obj.insert(self.field.to_string(), Value::Array(self.values.to_vec()));
         }
 
         result.insert("terms".to_string(), Value::Object(terms_obj));

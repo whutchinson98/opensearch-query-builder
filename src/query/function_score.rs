@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use serde::Serialize;
 
 mod boost_mode;
@@ -17,6 +19,7 @@ pub use score_mode::*;
 pub use script_score::*;
 use serde_json::{Map, Value};
 
+use crate::util::is_empty_slice;
 use crate::{QueryType, ToOpenSearchJson};
 
 /// Function Score Query
@@ -26,8 +29,8 @@ pub struct FunctionScoreQuery<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub query: Option<Box<QueryType<'a>>>,
     /// The scoring functions to use
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub functions: Vec<ScoreFunction<'a>>,
+    #[serde(skip_serializing_if = "is_empty_slice", default, borrow)]
+    pub functions: Cow<'a, [ScoreFunction<'a>]>,
     /// The score mode to use
     #[serde(skip_serializing_if = "Option::is_none")]
     pub score_mode: Option<ScoreMode>,
@@ -59,7 +62,7 @@ impl<'a> FunctionScoreQuery<'a> {
 
     /// Add a scoring function
     pub fn function(mut self, function: ScoreFunction<'a>) -> Self {
-        self.functions.push(function);
+        self.functions.to_mut().push(function);
         self
     }
 
@@ -175,7 +178,7 @@ pub struct FunctionScoreQueryBuilder<'a> {
     /// The query to use for scoring
     pub query: Option<Box<QueryType<'a>>>,
     /// The scoring functions to use
-    pub functions: Vec<ScoreFunction<'a>>,
+    pub functions: Cow<'a, [ScoreFunction<'a>]>,
     /// The score mode to use
     pub score_mode: Option<ScoreMode>,
     /// The boost mode to use
@@ -202,7 +205,7 @@ impl<'a> FunctionScoreQueryBuilder<'a> {
 
     /// Add a scoring function (can be called multiple times)
     pub fn function(&mut self, function: ScoreFunction<'a>) -> &mut Self {
-        self.functions.push(function);
+        self.functions.to_mut().push(function);
         self
     }
 
