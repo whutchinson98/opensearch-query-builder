@@ -1,26 +1,29 @@
+use std::borrow::Cow;
+
 use serde::Serialize;
 
 /// Field value factor configuration
 #[derive(Debug, Clone, Serialize)]
-pub struct FieldValueFactor {
+pub struct FieldValueFactor<'a> {
     /// The field to use for factoring
-    pub field: String,
+    #[serde(borrow)]
+    pub field: Cow<'a, str>,
     /// The factor to use for factoring
     #[serde(skip_serializing_if = "Option::is_none")]
     pub factor: Option<f64>,
     /// The modifier to use for factoring
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub modifier: Option<String>,
+    pub modifier: Option<Cow<'a, str>>,
     /// The missing value to use for factoring
     #[serde(skip_serializing_if = "Option::is_none")]
     pub missing: Option<f64>,
 }
 
-impl FieldValueFactor {
+impl<'a> FieldValueFactor<'a> {
     /// Create a new FieldValueFactor
-    pub fn new(field: &str) -> Self {
+    pub fn new(field: &'a str) -> Self {
         Self {
-            field: field.to_string(),
+            field: Cow::Borrowed(field),
             factor: None,
             modifier: None,
             missing: None,
@@ -34,8 +37,8 @@ impl FieldValueFactor {
     }
 
     /// Set the modifier
-    pub fn modifier(mut self, modifier: &str) -> Self {
-        self.modifier = Some(modifier.to_string());
+    pub fn modifier(mut self, modifier: &'a str) -> Self {
+        self.modifier = Some(Cow::Borrowed(modifier));
         self
     }
 

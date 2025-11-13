@@ -34,14 +34,14 @@ pub struct SearchRequest<'a> {
     /// Aggregations
     #[serde(skip_serializing_if = "HashMap::is_empty", default)]
     #[serde(borrow)]
-    pub aggs: HashMap<Cow<'a, str>, AggregationType>,
+    pub aggs: HashMap<Cow<'a, str>, AggregationType<'a>>,
     /// Source fields
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     #[serde(borrow)]
     pub _source: Vec<Cow<'a, str>>,
     /// Highlight
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub highlight: Option<Highlight>,
+    pub highlight: Option<Highlight<'a>>,
     /// Track total hits
     #[serde(skip_serializing_if = "Option::is_none")]
     pub track_total_hits: Option<bool>,
@@ -81,7 +81,7 @@ impl<'a> SearchRequest<'a> {
     }
 
     /// Add an aggregation
-    pub fn agg(mut self, name: &'a str, agg: AggregationType) -> Self {
+    pub fn agg(mut self, name: &'a str, agg: AggregationType<'a>) -> Self {
         self.aggs.insert(Cow::Borrowed(name), agg);
         self
     }
@@ -97,7 +97,7 @@ impl<'a> SearchRequest<'a> {
     }
 
     /// Set the highlight configuration
-    pub fn highlight(mut self, highlight: Highlight) -> Self {
+    pub fn highlight(mut self, highlight: Highlight<'a>) -> Self {
         self.highlight = Some(highlight);
         self
     }
@@ -181,9 +181,9 @@ pub struct SearchRequestBuilder<'a> {
     size: Option<u32>,
     from: Option<u32>,
     sort: Vec<SortType<'a>>,
-    aggs: HashMap<Cow<'a, str>, AggregationType>,
+    aggs: HashMap<Cow<'a, str>, AggregationType<'a>>,
     _source: Vec<Cow<'a, str>>,
-    highlight: Option<Highlight>,
+    highlight: Option<Highlight<'a>>,
     track_total_hits: Option<bool>,
     collapse: Option<Collapse<'a>>,
 }
@@ -231,7 +231,7 @@ impl<'a> SearchRequestBuilder<'a> {
     }
 
     /// Add an aggregation
-    pub fn add_agg(&mut self, name: &'a str, agg: AggregationType) -> &mut Self {
+    pub fn add_agg(&mut self, name: &'a str, agg: AggregationType<'a>) -> &mut Self {
         self.aggs.insert(Cow::Borrowed(name), agg);
         self
     }
@@ -271,7 +271,7 @@ impl<'a> SearchRequestBuilder<'a> {
     }
 
     /// Set the highlight configuration
-    pub fn highlight(&mut self, highlight: Highlight) -> &mut Self {
+    pub fn highlight(&mut self, highlight: Highlight<'a>) -> &mut Self {
         self.highlight = Some(highlight);
         self
     }

@@ -28,8 +28,8 @@ pub fn main() {
             HighlightField::new()
                 .highlight_type("unified")
                 .number_of_fragments(500)
-                .pre_tags(vec!["<macro_em>".to_string()])
-                .post_tags(vec!["</macro_em>".to_string()]),
+                .pre_tags(["<macro_em>"])
+                .post_tags(["</macro_em>"]),
         ),
     );
 

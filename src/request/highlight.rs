@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::HashMap;
 
 use serde::Serialize;
@@ -7,24 +8,25 @@ use crate::ToOpenSearchJson;
 
 /// Highlight
 #[derive(Default, Debug, Clone, Serialize)]
-pub struct Highlight {
+pub struct Highlight<'a> {
     /// Fields to highlight
     #[serde(skip_serializing_if = "HashMap::is_empty", default)]
-    pub fields: HashMap<String, HighlightField>,
+    pub fields: HashMap<Cow<'a, str>, HighlightField<'a>>,
     /// Require field match
     #[serde(skip_serializing_if = "Option::is_none")]
     pub require_field_match: Option<bool>,
 }
 
-impl Highlight {
+impl<'a> Highlight<'a> {
     /// Create a new Highlight
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Add a field to highlight
-    pub fn field(mut self, field_name: &str, highlight_field: HighlightField) -> Self {
-        self.fields.insert(field_name.to_string(), highlight_field);
+    pub fn field(mut self, field_name: &'a str, highlight_field: HighlightField<'a>) -> Self {
+        self.fields
+            .insert(Cow::Borrowed(field_name), highlight_field);
         self
     }
 
@@ -35,14 +37,14 @@ impl Highlight {
     }
 }
 
-impl ToOpenSearchJson for Highlight {
+impl<'a> ToOpenSearchJson for Highlight<'a> {
     fn to_json(&self) -> Value {
         let mut result = Map::new();
 
         if !self.fields.is_empty() {
             let mut fields_obj = Map::new();
             for (name, field) in &self.fields {
-                fields_obj.insert(name.clone(), field.to_json());
+                fields_obj.insert(name.to_string(), field.to_json());
             }
             result.insert("fields".to_string(), Value::Object(fields_obj));
         }
@@ -60,28 +62,28 @@ impl ToOpenSearchJson for Highlight {
 
 /// HighlightField
 #[derive(Debug, Clone, Serialize)]
-pub struct HighlightField {
+pub struct HighlightField<'a> {
     /// Highlight type
     #[serde(skip_serializing_if = "Option::is_none", rename = "type")]
-    pub highlight_type: Option<String>,
+    pub highlight_type: Option<Cow<'a, str>>,
     /// Number of fragments
     #[serde(skip_serializing_if = "Option::is_none")]
     pub number_of_fragments: Option<u32>,
     /// Pre-tags
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub pre_tags: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default, borrow)]
+    pub pre_tags: Vec<Cow<'a, str>>,
     /// Post-tags
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub post_tags: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default, borrow)]
+    pub post_tags: Vec<Cow<'a, str>>,
 }
 
-impl Default for HighlightField {
+impl<'a> Default for HighlightField<'a> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl HighlightField {
+impl<'a> HighlightField<'a> {
     /// Create a new HighlightField
     pub fn new() -> Self {
         Self {
@@ -93,8 +95,8 @@ impl HighlightField {
     }
 
     /// Set the highlight type
-    pub fn highlight_type(mut self, highlight_type: &str) -> Self {
-        self.highlight_type = Some(highlight_type.to_string());
+    pub fn highlight_type(mut self, highlight_type: &'a str) -> Self {
+        self.highlight_type = Some(Cow::Borrowed(highlight_type));
         self
     }
 
@@ -104,25 +106,36 @@ impl HighlightField {
         self
     }
 
-    /// Add a pre-tag
-    pub fn pre_tags(mut self, pre_tags: Vec<String>) -> Self {
-        self.pre_tags = pre_tags;
+    /// Add pre-tags
+    pub fn pre_tags<I, S>(mut self, pre_tags: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<Cow<'a, str>>,
+    {
+        self.pre_tags = pre_tags.into_iter().map(|s| s.into()).collect();
         self
     }
 
-    /// Add a post-tag
-    pub fn post_tags(mut self, post_tags: Vec<String>) -> Self {
-        self.post_tags = post_tags;
+    /// Add post-tags
+    pub fn post_tags<I, S>(mut self, post_tags: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<Cow<'a, str>>,
+    {
+        self.post_tags = post_tags.into_iter().map(|s| s.into()).collect();
         self
     }
 }
 
-impl ToOpenSearchJson for HighlightField {
+impl<'a> ToOpenSearchJson for HighlightField<'a> {
     fn to_json(&self) -> Value {
         let mut result = Map::new();
 
         if let Some(ref highlight_type) = self.highlight_type {
-            result.insert("type".to_string(), Value::String(highlight_type.clone()));
+            result.insert(
+                "type".to_string(),
+                Value::String(highlight_type.to_string()),
+            );
         }
 
         if let Some(number_of_fragments) = self.number_of_fragments {
@@ -136,7 +149,7 @@ impl ToOpenSearchJson for HighlightField {
             let pre_tags: Vec<Value> = self
                 .pre_tags
                 .iter()
-                .map(|tag| Value::String(tag.clone()))
+                .map(|tag| Value::String(tag.to_string()))
                 .collect();
             result.insert("pre_tags".to_string(), Value::Array(pre_tags));
         }
@@ -145,7 +158,7 @@ impl ToOpenSearchJson for HighlightField {
             let post_tags: Vec<Value> = self
                 .post_tags
                 .iter()
-                .map(|tag| Value::String(tag.clone()))
+                .map(|tag| Value::String(tag.to_string()))
                 .collect();
             result.insert("post_tags".to_string(), Value::Array(post_tags));
         }

@@ -1,21 +1,24 @@
+use std::borrow::Cow;
+
 use serde::Serialize;
 use serde_json::{Map, Value};
 
 /// Script score configuration
 #[derive(Debug, Clone, Serialize)]
-pub struct ScriptScore {
+pub struct ScriptScore<'a> {
     /// The script to use for scoring
-    pub source: String,
+    #[serde(borrow)]
+    pub source: Cow<'a, str>,
     /// The parameters to use for scoring
     #[serde(skip_serializing_if = "Option::is_none")]
     pub params: Option<Map<String, Value>>,
 }
 
-impl ScriptScore {
+impl<'a> ScriptScore<'a> {
     /// Create a new ScriptScore
-    pub fn new(source: &str) -> Self {
+    pub fn new(source: &'a str) -> Self {
         Self {
-            source: source.to_string(),
+            source: Cow::Borrowed(source),
             params: None,
         }
     }

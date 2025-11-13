@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::HashMap;
 
 use serde::Serialize;
@@ -7,25 +8,26 @@ use crate::ToOpenSearchJson;
 
 /// Cardinality Aggregation
 #[derive(Debug, Clone, Serialize)]
-pub struct CardinalityAggregation {
+pub struct CardinalityAggregation<'a> {
     /// The field to aggregate
-    pub field: String,
+    #[serde(borrow)]
+    pub field: Cow<'a, str>,
 }
 
-impl CardinalityAggregation {
+impl<'a> CardinalityAggregation<'a> {
     /// Create a new CardinalityAggregation
-    pub fn new(field: &str) -> Self {
+    pub fn new(field: &'a str) -> Self {
         Self {
-            field: field.to_string(),
+            field: Cow::Borrowed(field),
         }
     }
 }
 
-impl ToOpenSearchJson for CardinalityAggregation {
+impl<'a> ToOpenSearchJson for CardinalityAggregation<'a> {
     fn to_json(&self) -> Value {
         let mut result = Map::new();
         let mut cardinality_obj = Map::new();
-        cardinality_obj.insert("field".to_string(), Value::String(self.field.clone()));
+        cardinality_obj.insert("field".to_string(), Value::String(self.field.to_string()));
         result.insert("cardinality".to_string(), Value::Object(cardinality_obj));
         Value::Object(result)
     }
@@ -33,22 +35,23 @@ impl ToOpenSearchJson for CardinalityAggregation {
 
 /// Terms Aggregation
 #[derive(Debug, Clone, Serialize)]
-pub struct TermsAggregation {
+pub struct TermsAggregation<'a> {
     /// The field to aggregate
-    pub field: String,
+    #[serde(borrow)]
+    pub field: Cow<'a, str>,
     /// The maximum number of terms to return
     #[serde(skip_serializing_if = "Option::is_none")]
     pub size: Option<u32>,
     /// Sub-aggregations
     #[serde(skip_serializing_if = "HashMap::is_empty", default)]
-    pub sub_aggs: HashMap<String, AggregationType>,
+    pub sub_aggs: HashMap<Cow<'a, str>, AggregationType<'a>>,
 }
 
-impl TermsAggregation {
+impl<'a> TermsAggregation<'a> {
     /// Create a new TermsAggregation
-    pub fn new(field: &str) -> Self {
+    pub fn new(field: &'a str) -> Self {
         Self {
-            field: field.to_string(),
+            field: Cow::Borrowed(field),
             size: None,
             sub_aggs: HashMap::new(),
         }
@@ -61,16 +64,16 @@ impl TermsAggregation {
     }
 
     /// Add a sub-aggregation
-    pub fn sub_agg(mut self, name: &str, agg: AggregationType) -> Self {
-        self.sub_aggs.insert(name.to_string(), agg);
+    pub fn sub_agg(mut self, name: &'a str, agg: AggregationType<'a>) -> Self {
+        self.sub_aggs.insert(Cow::Borrowed(name), agg);
         self
     }
 }
 
-impl ToOpenSearchJson for TermsAggregation {
+impl<'a> ToOpenSearchJson for TermsAggregation<'a> {
     fn to_json(&self) -> Value {
         let mut terms_obj = Map::new();
-        terms_obj.insert("field".to_string(), Value::String(self.field.clone()));
+        terms_obj.insert("field".to_string(), Value::String(self.field.to_string()));
 
         if let Some(size) = self.size {
             terms_obj.insert("size".to_string(), Value::Number(size.into()));
@@ -82,7 +85,7 @@ impl ToOpenSearchJson for TermsAggregation {
         if !self.sub_aggs.is_empty() {
             let mut aggs_obj = Map::new();
             for (name, agg) in &self.sub_aggs {
-                aggs_obj.insert(name.clone(), agg.to_json());
+                aggs_obj.insert(name.to_string(), agg.to_json());
             }
             result.insert("aggs".to_string(), Value::Object(aggs_obj));
         }
@@ -94,14 +97,14 @@ impl ToOpenSearchJson for TermsAggregation {
 /// Aggregation Type
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type", content = "params")]
-pub enum AggregationType {
+pub enum AggregationType<'a> {
     /// Terms aggregation
-    Terms(TermsAggregation),
+    Terms(TermsAggregation<'a>),
     /// Cardinality aggregation
-    Cardinality(CardinalityAggregation),
+    Cardinality(CardinalityAggregation<'a>),
 }
 
-impl ToOpenSearchJson for AggregationType {
+impl<'a> ToOpenSearchJson for AggregationType<'a> {
     fn to_json(&self) -> Value {
         match self {
             AggregationType::Terms(terms) => terms.to_json(),
