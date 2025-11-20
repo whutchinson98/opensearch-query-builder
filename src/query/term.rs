@@ -20,9 +20,9 @@ pub struct TermQuery<'a> {
 
 impl<'a> TermQuery<'a> {
     /// Create a new TermQuery with a given field and value
-    pub fn new<T: Into<Value>>(field: &'a str, value: T) -> Self {
+    pub fn new<T: Into<Value>>(field: impl Into<Cow<'a, str>>, value: T) -> Self {
         Self {
-            field: Cow::Borrowed(field),
+            field: field.into(),
             value: value.into(),
             boost: None,
         }

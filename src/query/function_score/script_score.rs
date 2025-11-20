@@ -16,9 +16,9 @@ pub struct ScriptScore<'a> {
 
 impl<'a> ScriptScore<'a> {
     /// Create a new ScriptScore
-    pub fn new(source: &'a str) -> Self {
+    pub fn new(source: impl Into<Cow<'a, str>>) -> Self {
         Self {
-            source: Cow::Borrowed(source),
+            source: source.into(),
             params: None,
         }
     }

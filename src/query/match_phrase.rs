@@ -28,10 +28,10 @@ pub struct MatchPhraseQuery<'a> {
 
 impl<'a> MatchPhraseQuery<'a> {
     /// Create a new MatchPhraseQuery with a given field and query string
-    pub fn new(field: &'a str, query: &'a str) -> Self {
+    pub fn new(field: impl Into<Cow<'a, str>>, query: impl Into<Cow<'a, str>>) -> Self {
         Self {
-            field: Cow::Borrowed(field),
-            query: Cow::Borrowed(query),
+            field: field.into(),
+            query: query.into(),
             analyzer: None,
             slop: None,
             boost: None,
@@ -45,8 +45,8 @@ impl<'a> MatchPhraseQuery<'a> {
     }
 
     /// Set the analyzer to use
-    pub fn analyzer(mut self, analyzer: &'a str) -> Self {
-        self.analyzer = Some(Cow::Borrowed(analyzer));
+    pub fn analyzer(mut self, analyzer: impl Into<Cow<'a, str>>) -> Self {
+        self.analyzer = Some(analyzer.into());
         self
     }
 

@@ -27,10 +27,10 @@ pub struct MatchPhrasePrefixQuery<'a> {
 
 impl<'a> MatchPhrasePrefixQuery<'a> {
     /// Create a new MatchPhrasePrefixQuery with a given field and query string
-    pub fn new(field: &'a str, query: &'a str) -> Self {
+    pub fn new(field: impl Into<Cow<'a, str>>, query: impl Into<Cow<'a, str>>) -> Self {
         Self {
-            field: Cow::Borrowed(field),
-            query: Cow::Borrowed(query),
+            field: field.into(),
+            query: query.into(),
             max_expansions: None,
             slop: None,
             boost: None,

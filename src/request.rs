@@ -48,6 +48,9 @@ pub struct SearchRequest<'a> {
     /// Collapse
     #[serde(skip_serializing_if = "Option::is_none")]
     pub collapse: Option<Collapse<'a>>,
+    /// Search after (cursor-based pagination)
+    #[serde(skip_serializing_if = "is_empty_slice", default, borrow)]
+    pub search_after: Cow<'a, [Value]>,
 }
 
 impl<'a> SearchRequest<'a> {
@@ -81,8 +84,8 @@ impl<'a> SearchRequest<'a> {
     }
 
     /// Add an aggregation
-    pub fn agg(mut self, name: &'a str, agg: AggregationType<'a>) -> Self {
-        self.aggs.insert(Cow::Borrowed(name), agg);
+    pub fn agg(mut self, name: impl Into<Cow<'a, str>>, agg: AggregationType<'a>) -> Self {
+        self.aggs.insert(name.into(), agg);
         self
     }
 
@@ -111,6 +114,15 @@ impl<'a> SearchRequest<'a> {
     /// Set the collapse configuration
     pub fn collapse(mut self, collapse: Collapse<'a>) -> Self {
         self.collapse = Some(collapse);
+        self
+    }
+
+    /// Set search_after for cursor-based pagination
+    pub fn search_after<I>(mut self, values: I) -> Self
+    where
+        I: Into<Cow<'a, [Value]>>,
+    {
+        self.search_after = values.into();
         self
     }
 }
@@ -168,6 +180,13 @@ impl<'a> ToOpenSearchJson for SearchRequest<'a> {
             result.insert("collapse".to_string(), collapse.to_json());
         }
 
+        if !self.search_after.is_empty() {
+            result.insert(
+                "search_after".to_string(),
+                Value::Array(self.search_after.to_vec()),
+            );
+        }
+
         Value::Object(result)
     }
 }
@@ -186,6 +205,7 @@ pub struct SearchRequestBuilder<'a> {
     highlight: Option<Highlight<'a>>,
     track_total_hits: Option<bool>,
     collapse: Option<Collapse<'a>>,
+    search_after: Cow<'a, [Value]>,
 }
 
 impl<'a> SearchRequestBuilder<'a> {
@@ -231,14 +251,18 @@ impl<'a> SearchRequestBuilder<'a> {
     }
 
     /// Add an aggregation
-    pub fn add_agg(&mut self, name: &'a str, agg: AggregationType<'a>) -> &mut Self {
-        self.aggs.insert(Cow::Borrowed(name), agg);
+    pub fn add_agg(
+        &mut self,
+        name: impl Into<Cow<'a, str>>,
+        agg: AggregationType<'a>,
+    ) -> &mut Self {
+        self.aggs.insert(name.into(), agg);
         self
     }
 
     /// Remove an aggregation by name
-    pub fn remove_agg(&mut self, name: &'a str) -> &mut Self {
-        self.aggs.remove(&Cow::Borrowed(name));
+    pub fn remove_agg(&mut self, name: impl Into<Cow<'a, str>>) -> &mut Self {
+        self.aggs.remove(&name.into());
         self
     }
 
@@ -249,8 +273,8 @@ impl<'a> SearchRequestBuilder<'a> {
     }
 
     /// Add a source field to include in the response
-    pub fn add_source_field(&mut self, field: &'a str) -> &mut Self {
-        self._source.to_mut().push(Cow::Borrowed(field));
+    pub fn add_source_field(&mut self, field: impl Into<Cow<'a, str>>) -> &mut Self {
+        self._source.to_mut().push(field.into());
         self
     }
 
@@ -288,6 +312,27 @@ impl<'a> SearchRequestBuilder<'a> {
         self
     }
 
+    /// Add a value to search_after for cursor-based pagination
+    pub fn add_search_after_value(&mut self, value: Value) -> &mut Self {
+        self.search_after.to_mut().push(value);
+        self
+    }
+
+    /// Set search_after values (replaces existing values)
+    pub fn set_search_after<I>(&mut self, values: I) -> &mut Self
+    where
+        I: Into<Cow<'a, [Value]>>,
+    {
+        self.search_after = values.into();
+        self
+    }
+
+    /// Clear all search_after values
+    pub fn clear_search_after(&mut self) -> &mut Self {
+        self.search_after = Cow::Borrowed(&[]);
+        self
+    }
+
     /// Build the final SearchRequest
     pub fn build(self) -> SearchRequest<'a> {
         SearchRequest {
@@ -300,6 +345,7 @@ impl<'a> SearchRequestBuilder<'a> {
             highlight: self.highlight,
             track_total_hits: self.track_total_hits,
             collapse: self.collapse,
+            search_after: self.search_after,
         }
     }
 }

@@ -25,9 +25,12 @@ impl<'a> Highlight<'a> {
     }
 
     /// Add a field to highlight
-    pub fn field(mut self, field_name: &'a str, highlight_field: HighlightField<'a>) -> Self {
-        self.fields
-            .insert(Cow::Borrowed(field_name), highlight_field);
+    pub fn field(
+        mut self,
+        field_name: impl Into<Cow<'a, str>>,
+        highlight_field: HighlightField<'a>,
+    ) -> Self {
+        self.fields.insert(field_name.into(), highlight_field);
         self
     }
 
@@ -96,8 +99,8 @@ impl<'a> HighlightField<'a> {
     }
 
     /// Set the highlight type
-    pub fn highlight_type(mut self, highlight_type: &'a str) -> Self {
-        self.highlight_type = Some(Cow::Borrowed(highlight_type));
+    pub fn highlight_type(mut self, highlight_type: impl Into<Cow<'a, str>>) -> Self {
+        self.highlight_type = Some(highlight_type.into());
         self
     }
 
