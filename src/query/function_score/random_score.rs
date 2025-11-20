@@ -27,8 +27,8 @@ impl<'a> RandomScore<'a> {
     }
 
     /// Set the field
-    pub fn field(mut self, field: Cow<'a, str>) -> Self {
-        self.field = Some(field);
+    pub fn field(mut self, field: impl Into<Cow<'a, str>>) -> Self {
+        self.field = Some(field.into());
         self
     }
 }

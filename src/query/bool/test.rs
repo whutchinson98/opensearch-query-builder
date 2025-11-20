@@ -7,12 +7,12 @@ fn test_bool_query_builder() {
     let mut builder = BoolQueryBuilder::new();
 
     builder
-        .must(QueryType::Term(TermQuery::new("a".into(), "a")))
-        .must_not(QueryType::Term(TermQuery::new("c".into(), "c")));
+        .must(QueryType::Term(TermQuery::new("a", "a")))
+        .must_not(QueryType::Term(TermQuery::new("c", "c")));
 
-    builder.must(QueryType::Term(TermQuery::new("b".into(), "b")));
+    builder.must(QueryType::Term(TermQuery::new("b", "b")));
 
-    builder.should(QueryType::Term(TermQuery::new("d".into(), "d")));
+    builder.should(QueryType::Term(TermQuery::new("d", "d")));
 
     builder.minimum_should_match(1);
 

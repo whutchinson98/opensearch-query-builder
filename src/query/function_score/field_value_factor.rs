@@ -21,9 +21,9 @@ pub struct FieldValueFactor<'a> {
 
 impl<'a> FieldValueFactor<'a> {
     /// Create a new FieldValueFactor
-    pub fn new(field: Cow<'a, str>) -> Self {
+    pub fn new(field: impl Into<Cow<'a, str>>) -> Self {
         Self {
-            field,
+            field: field.into(),
             factor: None,
             modifier: None,
             missing: None,
@@ -37,8 +37,8 @@ impl<'a> FieldValueFactor<'a> {
     }
 
     /// Set the modifier
-    pub fn modifier(mut self, modifier: Cow<'a, str>) -> Self {
-        self.modifier = Some(modifier);
+    pub fn modifier(mut self, modifier: impl Into<Cow<'a, str>>) -> Self {
+        self.modifier = Some(modifier.into());
         self
     }
 

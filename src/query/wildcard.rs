@@ -21,10 +21,14 @@ pub struct WildcardQuery<'a> {
 
 impl<'a> WildcardQuery<'a> {
     /// Create a new WildcardQuery with a given field, value, and case_insensitive flag
-    pub fn new(field: Cow<'a, str>, value: Cow<'a, str>, case_insensitive: bool) -> Self {
+    pub fn new(
+        field: impl Into<Cow<'a, str>>,
+        value: impl Into<Cow<'a, str>>,
+        case_insensitive: bool,
+    ) -> Self {
         Self {
-            field,
-            value,
+            field: field.into(),
+            value: value.into(),
             case_insensitive,
         }
     }

@@ -84,8 +84,8 @@ impl<'a> SearchRequest<'a> {
     }
 
     /// Add an aggregation
-    pub fn agg(mut self, name: Cow<'a, str>, agg: AggregationType<'a>) -> Self {
-        self.aggs.insert(name, agg);
+    pub fn agg(mut self, name: impl Into<Cow<'a, str>>, agg: AggregationType<'a>) -> Self {
+        self.aggs.insert(name.into(), agg);
         self
     }
 
@@ -251,14 +251,18 @@ impl<'a> SearchRequestBuilder<'a> {
     }
 
     /// Add an aggregation
-    pub fn add_agg(&mut self, name: Cow<'a, str>, agg: AggregationType<'a>) -> &mut Self {
-        self.aggs.insert(name, agg);
+    pub fn add_agg(
+        &mut self,
+        name: impl Into<Cow<'a, str>>,
+        agg: AggregationType<'a>,
+    ) -> &mut Self {
+        self.aggs.insert(name.into(), agg);
         self
     }
 
     /// Remove an aggregation by name
-    pub fn remove_agg(&mut self, name: Cow<'a, str>) -> &mut Self {
-        self.aggs.remove(&name);
+    pub fn remove_agg(&mut self, name: impl Into<Cow<'a, str>>) -> &mut Self {
+        self.aggs.remove(&name.into());
         self
     }
 
@@ -269,8 +273,8 @@ impl<'a> SearchRequestBuilder<'a> {
     }
 
     /// Add a source field to include in the response
-    pub fn add_source_field(&mut self, field: Cow<'a, str>) -> &mut Self {
-        self._source.to_mut().push(field);
+    pub fn add_source_field(&mut self, field: impl Into<Cow<'a, str>>) -> &mut Self {
+        self._source.to_mut().push(field.into());
         self
     }
 

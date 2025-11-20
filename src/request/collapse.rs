@@ -15,8 +15,10 @@ pub struct Collapse<'a> {
 
 impl<'a> Collapse<'a> {
     /// Create a new Collapse
-    pub fn new(field: Cow<'a, str>) -> Self {
-        Self { field }
+    pub fn new(field: impl Into<Cow<'a, str>>) -> Self {
+        Self {
+            field: field.into(),
+        }
     }
 }
 

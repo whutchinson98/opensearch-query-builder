@@ -21,9 +21,12 @@ pub struct TermsQuery<'a> {
 
 impl<'a> TermsQuery<'a> {
     /// Create a new TermsQuery with a given field and values
-    pub fn new<T: Into<Value>>(field: Cow<'a, str>, values: impl IntoIterator<Item = T>) -> Self {
+    pub fn new<T: Into<Value>>(
+        field: impl Into<Cow<'a, str>>,
+        values: impl IntoIterator<Item = T>,
+    ) -> Self {
         Self {
-            field,
+            field: field.into(),
             values: Cow::Owned(values.into_iter().map(|v| v.into()).collect()),
             boost: None,
         }

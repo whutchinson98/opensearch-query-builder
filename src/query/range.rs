@@ -30,9 +30,9 @@ pub struct RangeQuery<'a> {
 
 impl<'a> RangeQuery<'a> {
     /// Create a new RangeQuery with a given field
-    pub fn new(field: Cow<'a, str>) -> Self {
+    pub fn new(field: impl Into<Cow<'a, str>>) -> Self {
         Self {
-            field,
+            field: field.into(),
             gte: None,
             gt: None,
             lte: None,
@@ -123,9 +123,9 @@ pub struct RangeQueryBuilder<'a> {
 
 impl<'a> RangeQueryBuilder<'a> {
     /// Create a new empty RangeQueryBuilder
-    pub fn new(field: Cow<'a, str>) -> Self {
+    pub fn new(field: impl Into<Cow<'a, str>>) -> Self {
         Self {
-            field,
+            field: field.into(),
             gte: None,
             gt: None,
             lte: None,

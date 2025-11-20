@@ -63,10 +63,10 @@ pub struct RegexpQuery<'a> {
 
 impl<'a> RegexpQuery<'a> {
     /// Create a new RegexpQuery with a given field and value
-    pub fn new(field: Cow<'a, str>, value: Cow<'a, str>) -> Self {
+    pub fn new(field: impl Into<Cow<'a, str>>, value: impl Into<Cow<'a, str>>) -> Self {
         Self {
-            field,
-            value,
+            field: field.into(),
+            value: value.into(),
             flags: None,
         }
     }
