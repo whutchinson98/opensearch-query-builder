@@ -33,10 +33,10 @@ pub struct MatchQuery<'a> {
 
 impl<'a> MatchQuery<'a> {
     /// Create a new MatchQuery with a given field and query string
-    pub fn new(field: &'a str, query: &'a str) -> Self {
+    pub fn new(field: Cow<'a, str>, query: Cow<'a, str>) -> Self {
         Self {
-            field: Cow::Borrowed(field),
-            query: Cow::Borrowed(query),
+            field,
+            query,
             operator: None,
             fuzziness: None,
             boost: None,
@@ -45,14 +45,14 @@ impl<'a> MatchQuery<'a> {
     }
 
     /// Set the operator to use
-    pub fn operator(mut self, operator: &'a str) -> Self {
-        self.operator = Some(Cow::Borrowed(operator));
+    pub fn operator(mut self, operator: Cow<'a, str>) -> Self {
+        self.operator = Some(operator);
         self
     }
 
     /// Set the fuzziness value
-    pub fn fuzziness(mut self, fuzziness: &'a str) -> Self {
-        self.fuzziness = Some(Cow::Borrowed(fuzziness));
+    pub fn fuzziness(mut self, fuzziness: Cow<'a, str>) -> Self {
+        self.fuzziness = Some(fuzziness);
         self
     }
 
@@ -63,8 +63,8 @@ impl<'a> MatchQuery<'a> {
     }
 
     /// Set the minimum should match value
-    pub fn minimum_should_match(mut self, minimum_should_match: &'a str) -> Self {
-        self.minimum_should_match = Some(Cow::Borrowed(minimum_should_match));
+    pub fn minimum_should_match(mut self, minimum_should_match: Cow<'a, str>) -> Self {
+        self.minimum_should_match = Some(minimum_should_match);
         self
     }
 }

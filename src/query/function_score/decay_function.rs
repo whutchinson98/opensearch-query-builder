@@ -25,11 +25,11 @@ pub struct DecayFunction<'a> {
 
 impl<'a> DecayFunction<'a> {
     /// Create a new DecayFunction
-    pub fn new(field: &'a str, scale: &'a str) -> Self {
+    pub fn new(field: Cow<'a, str>, scale: Cow<'a, str>) -> Self {
         Self {
-            field: Cow::Borrowed(field),
+            field,
             origin: None,
-            scale: Cow::Borrowed(scale),
+            scale,
             offset: None,
             decay: None,
         }
@@ -42,8 +42,8 @@ impl<'a> DecayFunction<'a> {
     }
 
     /// Set the offset
-    pub fn offset(mut self, offset: &'a str) -> Self {
-        self.offset = Some(Cow::Borrowed(offset));
+    pub fn offset(mut self, offset: Cow<'a, str>) -> Self {
+        self.offset = Some(offset);
         self
     }
 

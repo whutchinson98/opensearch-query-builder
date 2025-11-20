@@ -16,10 +16,8 @@ pub struct CardinalityAggregation<'a> {
 
 impl<'a> CardinalityAggregation<'a> {
     /// Create a new CardinalityAggregation
-    pub fn new(field: &'a str) -> Self {
-        Self {
-            field: Cow::Borrowed(field),
-        }
+    pub fn new(field: Cow<'a, str>) -> Self {
+        Self { field }
     }
 }
 
@@ -49,9 +47,9 @@ pub struct TermsAggregation<'a> {
 
 impl<'a> TermsAggregation<'a> {
     /// Create a new TermsAggregation
-    pub fn new(field: &'a str) -> Self {
+    pub fn new(field: Cow<'a, str>) -> Self {
         Self {
-            field: Cow::Borrowed(field),
+            field,
             size: None,
             sub_aggs: HashMap::new(),
         }
@@ -64,8 +62,8 @@ impl<'a> TermsAggregation<'a> {
     }
 
     /// Add a sub-aggregation
-    pub fn sub_agg(mut self, name: &'a str, agg: AggregationType<'a>) -> Self {
-        self.sub_aggs.insert(Cow::Borrowed(name), agg);
+    pub fn sub_agg(mut self, name: Cow<'a, str>, agg: AggregationType<'a>) -> Self {
+        self.sub_aggs.insert(name, agg);
         self
     }
 }

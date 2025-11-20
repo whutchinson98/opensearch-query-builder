@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use serde::Serialize;
 
 mod bool;
@@ -70,32 +72,32 @@ impl<'a> ToOpenSearchJson for QueryType<'a> {
 
 impl<'a> QueryType<'a> {
     /// Convenience method for creating a term query
-    pub fn term<T: Into<Value>>(field: &'a str, value: T) -> Self {
+    pub fn term<T: Into<Value>>(field: Cow<'a, str>, value: T) -> Self {
         QueryType::Term(TermQuery::new(field, value))
     }
 
     /// Convenience method for creating a terms query
-    pub fn terms<T: Into<Value>>(field: &'a str, values: impl IntoIterator<Item = T>) -> Self {
+    pub fn terms<T: Into<Value>>(field: Cow<'a, str>, values: impl IntoIterator<Item = T>) -> Self {
         QueryType::Terms(TermsQuery::new(field, values))
     }
 
     /// Convenience method for creating a wildcard query
-    pub fn wildcard(field: &'a str, value: &'a str, case_insensitive: bool) -> Self {
+    pub fn wildcard(field: Cow<'a, str>, value: Cow<'a, str>, case_insensitive: bool) -> Self {
         QueryType::WildCard(WildcardQuery::new(field, value, case_insensitive))
     }
 
     /// Convenience method for creating a regexp query
-    pub fn regexp(field: &'a str, value: &'a str) -> Self {
+    pub fn regexp(field: Cow<'a, str>, value: Cow<'a, str>) -> Self {
         QueryType::Regexp(RegexpQuery::new(field, value))
     }
 
     /// Convenience method for creating a match query
-    pub fn match_phrase(field: &'a str, query: &'a str) -> Self {
+    pub fn match_phrase(field: Cow<'a, str>, query: Cow<'a, str>) -> Self {
         QueryType::MatchPhrase(MatchPhraseQuery::new(field, query))
     }
 
     /// Convenience method for creating a match phrase prefix query
-    pub fn match_phrase_prefix(field: &'a str, query: &'a str) -> Self {
+    pub fn match_phrase_prefix(field: Cow<'a, str>, query: Cow<'a, str>) -> Self {
         QueryType::MatchPhrasePrefix(MatchPhrasePrefixQuery::new(field, query))
     }
 
@@ -105,7 +107,7 @@ impl<'a> QueryType<'a> {
     }
 
     /// Convenience method for starting a match query
-    pub fn range(field: &'a str) -> RangeQueryBuilder<'a> {
+    pub fn range(field: Cow<'a, str>) -> RangeQueryBuilder<'a> {
         RangeQueryBuilder::new(field)
     }
 

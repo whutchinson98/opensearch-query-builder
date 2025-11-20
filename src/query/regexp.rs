@@ -63,10 +63,10 @@ pub struct RegexpQuery<'a> {
 
 impl<'a> RegexpQuery<'a> {
     /// Create a new RegexpQuery with a given field and value
-    pub fn new(field: &'a str, value: &'a str) -> Self {
+    pub fn new(field: Cow<'a, str>, value: Cow<'a, str>) -> Self {
         Self {
-            field: Cow::Borrowed(field),
-            value: Cow::Borrowed(value),
+            field,
+            value,
             flags: None,
         }
     }

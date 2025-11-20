@@ -8,7 +8,7 @@ pub fn main() {
     let mut bool_query = BoolQueryBuilder::new();
 
     bool_query
-        .should(QueryType::term("content", query))
+        .should(QueryType::term("content".into(), query))
         .minimum_should_match(1);
 
     let result = SearchRequest::default()
@@ -16,14 +16,14 @@ pub fn main() {
         .from(from)
         .size(page_size)
         .sort(SortType::Field(FieldSort::new(
-            "updated_at",
+            "updated_at".into(),
             SortOrder::Desc,
         )))
         .highlight(
             Highlight::new().field(
-                "content",
+                "content".into(),
                 HighlightField::new()
-                    .highlight_type("unified")
+                    .highlight_type("unified".into())
                     .number_of_fragments(500)
                     .pre_tags(["<macro_em>"])
                     .post_tags(["</macro_em>"]),

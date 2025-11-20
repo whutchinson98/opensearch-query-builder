@@ -38,17 +38,17 @@ pub struct ScoreWithOrderSort {
 
 impl<'a> FieldSort<'a> {
     /// Create a new FieldSort
-    pub fn new(field: &'a str, order: SortOrder) -> Self {
+    pub fn new(field: Cow<'a, str>, order: SortOrder) -> Self {
         Self {
-            field: Cow::Borrowed(field),
+            field,
             order,
             missing: None,
         }
     }
 
     /// Set the missing value
-    pub fn missing(mut self, missing: &'a str) -> Self {
-        self.missing = Some(Cow::Borrowed(missing));
+    pub fn missing(mut self, missing: Cow<'a, str>) -> Self {
+        self.missing = Some(missing);
         self
     }
 }

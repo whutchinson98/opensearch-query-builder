@@ -15,10 +15,8 @@ pub struct Collapse<'a> {
 
 impl<'a> Collapse<'a> {
     /// Create a new Collapse
-    pub fn new(field: &'a str) -> Self {
-        Self {
-            field: Cow::Borrowed(field),
-        }
+    pub fn new(field: Cow<'a, str>) -> Self {
+        Self { field }
     }
 }
 
