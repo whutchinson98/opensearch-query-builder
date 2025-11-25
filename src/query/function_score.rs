@@ -95,6 +95,19 @@ impl<'a> FunctionScoreQuery<'a> {
         self.min_score = Some(min_score);
         self
     }
+
+    /// Convert to an owned version with 'static lifetime
+    pub fn to_owned(&self) -> FunctionScoreQuery<'static> {
+        FunctionScoreQuery {
+            query: self.query.as_ref().map(|q| Box::new((**q).to_owned())),
+            functions: Cow::Owned(self.functions.iter().map(|f| f.to_owned()).collect()),
+            score_mode: self.score_mode.clone(),
+            boost_mode: self.boost_mode.clone(),
+            max_boost: self.max_boost,
+            boost: self.boost,
+            min_score: self.min_score,
+        }
+    }
 }
 
 impl<'a> From<FunctionScoreQuery<'a>> for QueryType<'a> {

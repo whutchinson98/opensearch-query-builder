@@ -47,4 +47,14 @@ impl<'a> FieldValueFactor<'a> {
         self.missing = Some(missing);
         self
     }
+
+    /// Convert to an owned version with 'static lifetime
+    pub fn to_owned(&self) -> FieldValueFactor<'static> {
+        FieldValueFactor {
+            field: Cow::Owned(self.field.to_string()),
+            factor: self.factor,
+            modifier: self.modifier.as_ref().map(|m| Cow::Owned(m.to_string())),
+            missing: self.missing,
+        }
+    }
 }

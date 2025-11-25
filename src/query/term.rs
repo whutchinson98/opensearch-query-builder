@@ -33,6 +33,15 @@ impl<'a> TermQuery<'a> {
         self.boost = Some(boost);
         self
     }
+
+    /// Convert to an owned version with 'static lifetime
+    pub fn to_owned(&self) -> TermQuery<'static> {
+        TermQuery {
+            field: Cow::Owned(self.field.to_string()),
+            value: self.value.clone(),
+            boost: self.boost,
+        }
+    }
 }
 
 impl<'a> From<TermQuery<'a>> for QueryType<'a> {

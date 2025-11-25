@@ -67,6 +67,21 @@ impl<'a> MatchQuery<'a> {
         self.minimum_should_match = Some(minimum_should_match.into());
         self
     }
+
+    /// Convert to an owned version with 'static lifetime
+    pub fn to_owned(&self) -> MatchQuery<'static> {
+        MatchQuery {
+            field: Cow::Owned(self.field.to_string()),
+            query: Cow::Owned(self.query.to_string()),
+            operator: self.operator.as_ref().map(|o| Cow::Owned(o.to_string())),
+            fuzziness: self.fuzziness.as_ref().map(|f| Cow::Owned(f.to_string())),
+            boost: self.boost,
+            minimum_should_match: self
+                .minimum_should_match
+                .as_ref()
+                .map(|m| Cow::Owned(m.to_string())),
+        }
+    }
 }
 
 impl<'a> From<MatchQuery<'a>> for QueryType<'a> {

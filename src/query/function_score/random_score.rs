@@ -31,4 +31,12 @@ impl<'a> RandomScore<'a> {
         self.field = Some(field.into());
         self
     }
+
+    /// Convert to an owned version with 'static lifetime
+    pub fn to_owned(&self) -> RandomScore<'static> {
+        RandomScore {
+            seed: self.seed.clone(),
+            field: self.field.as_ref().map(|f| Cow::Owned(f.to_string())),
+        }
+    }
 }

@@ -55,6 +55,17 @@ impl<'a> MatchPhraseQuery<'a> {
         self.boost = Some(boost);
         self
     }
+
+    /// Convert to an owned version with 'static lifetime
+    pub fn to_owned(&self) -> MatchPhraseQuery<'static> {
+        MatchPhraseQuery {
+            field: Cow::Owned(self.field.to_string()),
+            query: Cow::Owned(self.query.to_string()),
+            slop: self.slop,
+            analyzer: self.analyzer.as_ref().map(|a| Cow::Owned(a.to_string())),
+            boost: self.boost,
+        }
+    }
 }
 
 impl<'a> From<MatchPhraseQuery<'a>> for QueryType<'a> {
