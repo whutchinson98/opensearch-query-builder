@@ -32,6 +32,15 @@ impl<'a> WildcardQuery<'a> {
             case_insensitive,
         }
     }
+
+    /// Convert to an owned version with 'static lifetime
+    pub fn to_owned(&self) -> WildcardQuery<'static> {
+        WildcardQuery {
+            field: Cow::Owned(self.field.to_string()),
+            value: Cow::Owned(self.value.to_string()),
+            case_insensitive: self.case_insensitive,
+        }
+    }
 }
 
 impl<'a> From<WildcardQuery<'a>> for QueryType<'a> {

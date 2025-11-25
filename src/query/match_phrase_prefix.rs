@@ -54,6 +54,17 @@ impl<'a> MatchPhrasePrefixQuery<'a> {
         self.boost = Some(boost);
         self
     }
+
+    /// Convert to an owned version with 'static lifetime
+    pub fn to_owned(&self) -> MatchPhrasePrefixQuery<'static> {
+        MatchPhrasePrefixQuery {
+            field: Cow::Owned(self.field.to_string()),
+            query: Cow::Owned(self.query.to_string()),
+            max_expansions: self.max_expansions,
+            slop: self.slop,
+            boost: self.boost,
+        }
+    }
 }
 
 impl<'a> From<MatchPhrasePrefixQuery<'a>> for QueryType<'a> {

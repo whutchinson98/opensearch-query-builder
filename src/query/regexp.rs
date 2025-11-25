@@ -76,6 +76,15 @@ impl<'a> RegexpQuery<'a> {
         self.flags = Some(flags);
         self
     }
+
+    /// Convert to an owned version with 'static lifetime
+    pub fn to_owned(&self) -> RegexpQuery<'static> {
+        RegexpQuery {
+            field: Cow::Owned(self.field.to_string()),
+            value: Cow::Owned(self.value.to_string()),
+            flags: self.flags.as_ref().map(|f| Cow::Owned(f.to_vec())),
+        }
+    }
 }
 
 impl<'a> From<RegexpQuery<'a>> for QueryType<'a> {

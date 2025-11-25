@@ -52,4 +52,15 @@ impl<'a> DecayFunction<'a> {
         self.decay = Some(decay);
         self
     }
+
+    /// Convert to an owned version with 'static lifetime
+    pub fn to_owned(&self) -> DecayFunction<'static> {
+        DecayFunction {
+            field: Cow::Owned(self.field.to_string()),
+            origin: self.origin.clone(),
+            scale: Cow::Owned(self.scale.to_string()),
+            offset: self.offset.as_ref().map(|o| Cow::Owned(o.to_string())),
+            decay: self.decay,
+        }
+    }
 }

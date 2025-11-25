@@ -25,6 +25,23 @@ pub enum ScoreFunctionType<'a> {
     Weight(f64),
 }
 
+impl<'a> ScoreFunctionType<'a> {
+    /// Convert to an owned version with 'static lifetime
+    pub fn to_owned(&self) -> ScoreFunctionType<'static> {
+        match self {
+            ScoreFunctionType::Gauss(decay) => ScoreFunctionType::Gauss(decay.to_owned()),
+            ScoreFunctionType::Exp(decay) => ScoreFunctionType::Exp(decay.to_owned()),
+            ScoreFunctionType::Linear(decay) => ScoreFunctionType::Linear(decay.to_owned()),
+            ScoreFunctionType::FieldValueFactor(fvf) => {
+                ScoreFunctionType::FieldValueFactor(fvf.to_owned())
+            }
+            ScoreFunctionType::RandomScore(rs) => ScoreFunctionType::RandomScore(rs.to_owned()),
+            ScoreFunctionType::ScriptScore(ss) => ScoreFunctionType::ScriptScore(ss.to_owned()),
+            ScoreFunctionType::Weight(w) => ScoreFunctionType::Weight(*w),
+        }
+    }
+}
+
 /// A single scoring function with optional filter and weight
 #[derive(Debug, Clone, Serialize)]
 pub struct ScoreFunction<'a> {
@@ -37,6 +54,17 @@ pub struct ScoreFunction<'a> {
     /// The weight to apply to the function
     #[serde(skip_serializing_if = "Option::is_none")]
     pub weight: Option<f64>,
+}
+
+impl<'a> ScoreFunction<'a> {
+    /// Convert to an owned version with 'static lifetime
+    pub fn to_owned(&self) -> ScoreFunction<'static> {
+        ScoreFunction {
+            function: self.function.to_owned(),
+            filter: self.filter.as_ref().map(|f| Box::new((**f).to_owned())),
+            weight: self.weight,
+        }
+    }
 }
 
 impl<'a> ToOpenSearchJson for ScoreFunction<'a> {

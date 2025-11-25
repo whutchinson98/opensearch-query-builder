@@ -67,6 +67,18 @@ impl<'a> RangeQuery<'a> {
         self.boost = Some(boost);
         self
     }
+
+    /// Convert to an owned version with 'static lifetime
+    pub fn to_owned(&self) -> RangeQuery<'static> {
+        RangeQuery {
+            field: Cow::Owned(self.field.to_string()),
+            gte: self.gte.clone(),
+            gt: self.gt.clone(),
+            lte: self.lte.clone(),
+            lt: self.lt.clone(),
+            boost: self.boost,
+        }
+    }
 }
 
 impl<'a> From<RangeQuery<'a>> for QueryType<'a> {

@@ -125,4 +125,24 @@ impl<'a> QueryType<'a> {
     pub fn function_score() -> FunctionScoreQueryBuilder<'a> {
         FunctionScoreQueryBuilder::new()
     }
+
+    /// Convert to an owned version with 'static lifetime
+    pub fn to_owned(&self) -> QueryType<'static> {
+        match self {
+            QueryType::Bool(bool_query) => QueryType::Bool(bool_query.to_owned()),
+            QueryType::FunctionScore(function_score) => {
+                QueryType::FunctionScore(function_score.to_owned())
+            }
+            QueryType::MatchPhrase(match_phrase) => QueryType::MatchPhrase(match_phrase.to_owned()),
+            QueryType::MatchPhrasePrefix(match_phrase_prefix) => {
+                QueryType::MatchPhrasePrefix(match_phrase_prefix.to_owned())
+            }
+            QueryType::Match(match_query) => QueryType::Match(match_query.to_owned()),
+            QueryType::Range(range) => QueryType::Range(range.to_owned()),
+            QueryType::Regexp(regexp) => QueryType::Regexp(regexp.to_owned()),
+            QueryType::Term(term) => QueryType::Term(term.to_owned()),
+            QueryType::Terms(terms) => QueryType::Terms(terms.to_owned()),
+            QueryType::WildCard(wildcard) => QueryType::WildCard(wildcard.to_owned()),
+        }
+    }
 }

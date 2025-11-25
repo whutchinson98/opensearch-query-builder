@@ -69,6 +69,18 @@ impl<'a> BoolQuery<'a> {
         self.boost = Some(boost);
         self
     }
+
+    /// Convert to an owned version with 'static lifetime
+    pub fn to_owned(&self) -> BoolQuery<'static> {
+        BoolQuery {
+            must: Cow::Owned(self.must.iter().map(|q| q.to_owned()).collect()),
+            must_not: Cow::Owned(self.must_not.iter().map(|q| q.to_owned()).collect()),
+            should: Cow::Owned(self.should.iter().map(|q| q.to_owned()).collect()),
+            filter: Cow::Owned(self.filter.iter().map(|q| q.to_owned()).collect()),
+            minimum_should_match: self.minimum_should_match,
+            boost: self.boost,
+        }
+    }
 }
 
 impl<'a> From<BoolQuery<'a>> for QueryType<'a> {

@@ -28,4 +28,12 @@ impl<'a> ScriptScore<'a> {
         self.params = Some(params);
         self
     }
+
+    /// Convert to an owned version with 'static lifetime
+    pub fn to_owned(&self) -> ScriptScore<'static> {
+        ScriptScore {
+            source: Cow::Owned(self.source.to_string()),
+            params: self.params.clone(),
+        }
+    }
 }
