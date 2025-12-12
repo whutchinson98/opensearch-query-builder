@@ -17,6 +17,8 @@ pub struct WildcardQuery<'a> {
     value: Cow<'a, str>,
     /// Whether to perform a case-insensitive search
     case_insensitive: bool,
+    /// The boost value
+    boost: Option<f64>,
 }
 
 impl<'a> WildcardQuery<'a> {
@@ -25,12 +27,20 @@ impl<'a> WildcardQuery<'a> {
         field: impl Into<Cow<'a, str>>,
         value: impl Into<Cow<'a, str>>,
         case_insensitive: bool,
+        boost: Option<f64>,
     ) -> Self {
         Self {
             field: field.into(),
             value: value.into(),
             case_insensitive,
+            boost,
         }
+    }
+
+    /// Set the boost
+    pub fn boost(mut self, boost: f64) -> Self {
+        self.boost = Some(boost);
+        self
     }
 
     /// Convert to an owned version with 'static lifetime
@@ -39,6 +49,7 @@ impl<'a> WildcardQuery<'a> {
             field: Cow::Owned(self.field.to_string()),
             value: Cow::Owned(self.value.to_string()),
             case_insensitive: self.case_insensitive,
+            boost: self.boost,
         }
     }
 }
@@ -55,7 +66,8 @@ impl<'a> ToOpenSearchJson for WildcardQuery<'a> {
             "wildcard": {
                 self.field.as_ref(): {
                     "value": self.value.as_ref(),
-                    "case_insensitive": self.case_insensitive
+                    "case_insensitive": self.case_insensitive,
+                    "boost": self.boost,
                 }
             }
         })
