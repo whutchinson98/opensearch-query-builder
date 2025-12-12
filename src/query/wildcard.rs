@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{Map, Value};
 
 use crate::{QueryType, ToOpenSearchJson};
 
@@ -62,14 +62,23 @@ impl<'a> From<WildcardQuery<'a>> for QueryType<'a> {
 
 impl<'a> ToOpenSearchJson for WildcardQuery<'a> {
     fn to_json(&self) -> Value {
-        serde_json::json!({
-            "wildcard": {
-                self.field.as_ref(): {
-                    "value": self.value.as_ref(),
-                    "case_insensitive": self.case_insensitive,
-                    "boost": self.boost,
-                }
-            }
-        })
+        let mut wildcard_obj = Map::new();
+        let mut field_obj = Map::new();
+
+        field_obj.insert("value".to_string(), Value::String(self.value.to_string()));
+        field_obj.insert("case_insensitive".to_string(), self.case_insensitive.into());
+
+        if let Some(boost) = self.boost {
+            field_obj.insert("boost".to_string(), boost.into());
+        }
+
+        wildcard_obj.insert(self.field.to_string(), Value::Object(field_obj));
+
+        let mut result = Map::new();
+        result.insert("wildcard".to_string(), Value::Object(wildcard_obj));
+        Value::Object(result)
     }
 }
+
+#[cfg(test)]
+mod test;
