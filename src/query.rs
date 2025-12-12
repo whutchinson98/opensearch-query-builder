@@ -90,7 +90,7 @@ impl<'a> QueryType<'a> {
         value: impl Into<Cow<'a, str>>,
         case_insensitive: bool,
     ) -> Self {
-        QueryType::WildCard(WildcardQuery::new(field, value, case_insensitive))
+        QueryType::WildCard(WildcardQuery::new(field, value, case_insensitive, None))
     }
 
     /// Convenience method for creating a regexp query
