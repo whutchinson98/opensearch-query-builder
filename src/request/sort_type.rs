@@ -27,6 +27,10 @@ pub struct FieldSort<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(borrow)]
     pub missing: Option<Cow<'a, str>>,
+    /// Unmapped type
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(borrow)]
+    pub unmapped_type: Option<Cow<'a, str>>,
 }
 
 /// Score sort with order
@@ -43,12 +47,19 @@ impl<'a> FieldSort<'a> {
             field: field.into(),
             order,
             missing: None,
+            unmapped_type: None,
         }
     }
 
     /// Set the missing value
     pub fn missing(mut self, missing: impl Into<Cow<'a, str>>) -> Self {
         self.missing = Some(missing.into());
+        self
+    }
+
+    /// Set the unmapped type
+    pub fn unmapped_type(mut self, unmapped_type: impl Into<Cow<'a, str>>) -> Self {
+        self.unmapped_type = Some(unmapped_type.into());
         self
     }
 }
@@ -65,7 +76,7 @@ impl<'a> ToOpenSearchJson for FieldSort<'a> {
         let mut result = Map::new();
 
         // Use simplified format when there are no additional parameters
-        if self.missing.is_none() {
+        if self.missing.is_none() && self.unmapped_type.is_none() {
             result.insert(
                 self.field.to_string(),
                 Value::String(match self.order {
@@ -86,6 +97,13 @@ impl<'a> ToOpenSearchJson for FieldSort<'a> {
 
             if let Some(ref missing) = self.missing {
                 field_obj.insert("missing".to_string(), Value::String(missing.to_string()));
+            }
+
+            if let Some(ref unmapped_type) = self.unmapped_type {
+                field_obj.insert(
+                    "unmapped_type".to_string(),
+                    Value::String(unmapped_type.to_string()),
+                );
             }
 
             result.insert(self.field.to_string(), Value::Object(field_obj));
@@ -129,3 +147,6 @@ impl<'a> ToOpenSearchJson for SortType<'a> {
         }
     }
 }
+
+#[cfg(test)]
+mod test;
