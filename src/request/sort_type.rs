@@ -3,7 +3,9 @@ use std::borrow::Cow;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
-use crate::ToOpenSearchJson;
+use crate::{ToOpenSearchJson, request::sort_type::script::ScriptSort};
+
+mod script;
 
 /// Sort Order
 #[derive(Debug, Clone, Serialize)]
@@ -13,6 +15,22 @@ pub enum SortOrder {
     Asc,
     /// Descending
     Desc,
+}
+
+/// Sort Mode
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum SortMode {
+    /// Minimum
+    Min,
+    /// Maximum
+    Max,
+    /// Sum
+    Sum,
+    /// Average
+    Avg,
+    /// Median
+    Median,
 }
 
 /// Field Sort
@@ -137,6 +155,8 @@ pub enum SortType<'a> {
     Score,
     /// Score with sort order
     ScoreWithOrder(ScoreWithOrderSort),
+    /// Script sort
+    ScriptSort(ScriptSort<'a>),
 }
 impl<'a> ToOpenSearchJson for SortType<'a> {
     fn to_json(&self) -> Value {
@@ -144,6 +164,7 @@ impl<'a> ToOpenSearchJson for SortType<'a> {
             SortType::Field(field_sort) => field_sort.to_json(),
             SortType::Score => serde_json::json!("_score"),
             SortType::ScoreWithOrder(score_sort) => score_sort.to_json(),
+            SortType::ScriptSort(script_sort) => script_sort.to_json(),
         }
     }
 }
