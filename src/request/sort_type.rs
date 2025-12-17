@@ -3,9 +3,11 @@ use std::borrow::Cow;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
-use crate::{ToOpenSearchJson, request::sort_type::script::ScriptSort};
+use crate::ToOpenSearchJson;
 
 mod script;
+
+pub use script::*;
 
 /// Sort Order
 #[derive(Debug, Clone, Serialize)]
