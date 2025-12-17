@@ -42,6 +42,29 @@ pub struct Script<'a> {
     pub params: Option<serde_json::Value>,
 }
 
+impl<'a> Script<'a> {
+    /// Create a new Script with the given source
+    pub fn new(source: impl Into<Cow<'a, str>>) -> Self {
+        Self {
+            source: source.into(),
+            lang: Lang::default(),
+            params: None,
+        }
+    }
+
+    /// Set the script language
+    pub fn lang(mut self, lang: Lang) -> Self {
+        self.lang = lang;
+        self
+    }
+
+    /// Set the script parameters
+    pub fn params(mut self, params: serde_json::Value) -> Self {
+        self.params = Some(params);
+        self
+    }
+}
+
 /// Script Sort
 #[derive(Debug, Clone, Serialize)]
 pub struct ScriptSort<'a> {
@@ -56,6 +79,24 @@ pub struct ScriptSort<'a> {
     /// Only relevant for multi-value scripts
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mode: Option<SortMode>,
+}
+
+impl<'a> ScriptSort<'a> {
+    /// Create a new ScriptSort with the given script, type, and order
+    pub fn new(script: Script<'a>, sort_type: ScriptSortType, order: SortOrder) -> Self {
+        Self {
+            sort_type,
+            script,
+            order,
+            mode: None,
+        }
+    }
+
+    /// Set the sort mode
+    pub fn mode(mut self, mode: SortMode) -> Self {
+        self.mode = Some(mode);
+        self
+    }
 }
 
 impl<'a> ToOpenSearchJson for ScriptSort<'a> {
